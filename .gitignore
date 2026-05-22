@@ -1,0 +1,44 @@
+# Maven build artifacts
+/target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.sw?
+
+# Logs
+*.log
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+*.key
+*.pem
+
+# Lombok generated files (optional)
+lombok.config
+
+# IntelliJ / Eclipse / NetBeans specific
+*.class
+*.jar
+*.war
+*.ear
+
+# Backup files
+*~
+*.bak
+*.swp
+
+# Test reports
+/test-output/
+.surefire-*
+
+# Dependency cache
+.mvn/

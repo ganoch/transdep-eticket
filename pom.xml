@@ -83,8 +83,36 @@
       <version>3.0.3</version>
     </dependency>
 
+    <!-- HTML parsing for legacy websites -->
+    <dependency>
+      <groupId>org.jsoup</groupId>
+      <artifactId>jsoup</artifactId>
+      <version>1.15.3</version>
+    </dependency>
 
-  </dependencies>
+    <!-- Testing dependencies -->
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.13.2</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- Logging implementation for tests -->
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.2.11</version>
+      <scope>test</scope>
+    </dependency>
+<dependency>
+  <groupId>ch.qos.logback</groupId>
+  <artifactId>logback-classic</artifactId>
+  <version>1.2.11</version>
+  <scope>test</scope>
+</dependency>
+
+</dependencies>
 
   <build>
     <sourceDirectory>src/main/java</sourceDirectory>
@@ -97,13 +125,14 @@
           <target>${java.version}</target>
         </configuration>
       </plugin>
-      <!-- temporary remove after testing! -->
       <plugin>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-maven-plugin</artifactId>
-        <version>2.7.18</version>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.22.2</version>
         <configuration>
-          <skip>true</skip>
+          <includes>
+            <include>**/*Test.java</include>S <include>**/*Tests.java</include>
+          </includes>
         </configuration>
       </plugin>
     </plugins>

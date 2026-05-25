@@ -70,7 +70,7 @@ public class TransDepEticket {
      */
     public List<Map<String, String>> fetchDepartures() throws IOException {
         logger.info("Fetching departures...");
-        return fetchOptions("select[name='from'] option, #departure option");
+        return fetchOptions("select[name='from_location'] option, #departure option");
     }
 
     /**
@@ -79,7 +79,7 @@ public class TransDepEticket {
      */
     public List<Map<String, String>> fetchDestinations() throws IOException {
         logger.info("Fetching destinations...");
-        return fetchOptions("select[name='to'] option, #destination option");
+        return fetchOptions("select[name='to_location'] option, #destination option");
     }
 
     /**

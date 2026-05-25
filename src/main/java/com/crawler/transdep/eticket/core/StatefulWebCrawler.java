@@ -1,5 +1,6 @@
 package com.crawler.transdep.eticket.core;
 
+import com.crawler.transdep.eticket.util.HttpClientBuilder;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -25,23 +26,23 @@ import java.util.Map;
  * Stateful crawler for websites that require session management
  * (e.g., login, multi-step forms, CSRF tokens)
  */
-public abstract class StatefulWebCrawler {
+public abstract class StatefulWebCrawler extends WebCrawler {
     private static final Logger logger = LoggerFactory.getLogger(StatefulWebCrawler.class);
 
-    protected CloseableHttpClient httpClient;
     protected HttpClientContext context;
     protected CookieStore cookieStore;
-    protected String baseUrl;
-    protected Map<String, String> defaultHeaders;
 
     public StatefulWebCrawler(String baseUrl) {
-        this.baseUrl = baseUrl;
+        super(baseUrl);
         this.cookieStore = new BasicCookieStore();
         this.context = HttpClientContext.create();
         this.context.setCookieStore(cookieStore);
-        this.httpClient = HttpClients.createDefault();
-        this.defaultHeaders = new HashMap<>();
-        this.defaultHeaders.put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+        try {
+            this.httpClient = HttpClientBuilder.createDefaultHttpClient();
+        } catch (Exception e) {
+            logger.error("Failed to create HTTP client", e);
+            throw new RuntimeException(e);
+        }
     }
 
     /**

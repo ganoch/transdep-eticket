@@ -13,6 +13,14 @@ import org.slf4j.LoggerFactory;
 public class TestRunner {
     private static final Logger logger = LoggerFactory.getLogger(TestRunner.class);
 
+    private static String repeat(String str, int count) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < count; i++) {
+            sb.append(str);
+        }
+        return sb.toString();
+    }
+
     public static void main(String[] args) {
         System.out.println("╔══════════════════════════════════════════════════════════════╗");
         System.out.println("║     TransDep E-Ticket Crawler Test Suite                     ║");
@@ -23,12 +31,12 @@ public class TestRunner {
 
         // Run tests
         System.out.println("Running unit tests...");
-        System.out.println("─".repeat(62));
+        System.out.println(repeat("─", 62));
         Result unitResults = junit.run(TransDepEticketTest.class);
 
         System.out.println();
         System.out.println("Running integration tests...");
-        System.out.println("─".repeat(62));
+        System.out.println(repeat("─", 62));
         Result integrationResults = junit.run(TransDepEticketIntegrationTest.class);
 
         // Print summary
@@ -59,7 +67,7 @@ public class TestRunner {
         if (!wasSuccessful) {
             System.out.println();
             System.out.println("FAILURES:");
-            System.out.println("─".repeat(62));
+            System.out.println(repeat("─", 62));
 
             for (Failure failure : unitResults.getFailures()) {
                 System.out.println("Unit Test: " + failure.getTestHeader());

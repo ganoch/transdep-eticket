@@ -15,7 +15,7 @@ import java.util.Map;
  */
 public class ExampleLoginCrawler extends StatefulWebCrawler {
     private static final Logger logger = LoggerFactory.getLogger(ExampleLoginCrawler.class);
-    
+
     private String username;
     private String password;
 
@@ -28,16 +28,16 @@ public class ExampleLoginCrawler extends StatefulWebCrawler {
     @Override
     public void crawl() throws IOException {
         logger.info("Starting stateful crawl for {}", baseUrl);
-        
+
         // Step 1: Get login page and extract CSRF token
         if (!login()) {
             logger.error("Login failed");
             return;
         }
-        
+
         // Step 2: Access protected content
         fetchProtectedData();
-        
+
         // Log cookies to verify session
         logCookies();
     }
@@ -47,32 +47,32 @@ public class ExampleLoginCrawler extends StatefulWebCrawler {
      */
     private boolean login() throws IOException {
         logger.info("Getting login page...");
-        
+
         // Fetch login form
         Document loginPage = getPageStateful("/login");
         HtmlParser parser = new HtmlParser(loginPage);
-        
+
         // Extract form fields (including CSRF token if present)
         Map<String, String> formData = parser.parseForm("form");
         logger.info("Login form fields: {}", formData.keySet());
-        
+
         // Add credentials
         formData.put("username", username);
         formData.put("password", password);
-        
+
         // Build form body
         StringBuilder formBody = new StringBuilder();
         formData.forEach((key, value) -> {
             if (formBody.length() > 0) formBody.append("&");
             formBody.append(key).append("=").append(value);
         });
-        
+
         // Submit login form
         logger.info("Submitting login...");
         Document response = postPageStateful("/login", formBody.toString());
-        
+
         // Check if login was successful (e.g., check for error message)
-        return !response.selectFirst(".error-message") != null;
+        return response.selectFirst(".error-message") == null;
     }
 
     /**
@@ -80,13 +80,13 @@ public class ExampleLoginCrawler extends StatefulWebCrawler {
      */
     private void fetchProtectedData() throws IOException {
         logger.info("Fetching protected data...");
-        
+
         Document page = getPageStateful("/dashboard");
         HtmlParser parser = new HtmlParser(page);
-        
+
         String username = parser.getText(".user-name");
         logger.info("Logged in as: {}", username);
-        
+
         // Your protected data parsing logic here
     }
 

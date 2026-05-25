@@ -1,11 +1,11 @@
 package com.crawler.transdep.eticket.core;
 
+import com.crawler.transdep.eticket.util.HttpClientBuilder;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -22,14 +22,19 @@ import java.util.Map;
  */
 public abstract class WebCrawler {
     private static final Logger logger = LoggerFactory.getLogger(WebCrawler.class);
-    
+
     protected CloseableHttpClient httpClient;
     protected String baseUrl;
     protected Map<String, String> defaultHeaders;
 
     public WebCrawler(String baseUrl) {
         this.baseUrl = baseUrl;
-        this.httpClient = HttpClients.createDefault();
+        try {
+            this.httpClient = HttpClientBuilder.createDefaultHttpClient();
+        } catch (Exception e) {
+            logger.error("Failed to create HTTP client", e);
+            throw new RuntimeException(e);
+        }
         this.defaultHeaders = new HashMap<>();
         this.defaultHeaders.put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
         this.defaultHeaders.put("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
@@ -41,9 +46,9 @@ public abstract class WebCrawler {
     protected Document getPage(String path) throws IOException {
         String url = baseUrl + path;
         HttpGet get = new HttpGet(url);
-        
+
         defaultHeaders.forEach(get::setHeader);
-        
+
         try (CloseableHttpResponse response = httpClient.execute(get)) {
             if (response.getStatusLine().getStatusCode() != 200) {
                 throw new IOException("HTTP " + response.getStatusLine().getStatusCode() + " for " + url);
@@ -59,11 +64,11 @@ public abstract class WebCrawler {
     protected Document postPage(String path, String formData) throws IOException {
         String url = baseUrl + path;
         HttpPost post = new HttpPost(url);
-        
+
         defaultHeaders.forEach(post::setHeader);
         post.setHeader("Content-Type", "application/x-www-form-urlencoded");
         post.setEntity(new StringEntity(formData));
-        
+
         try (CloseableHttpResponse response = httpClient.execute(post)) {
             if (response.getStatusLine().getStatusCode() != 200) {
                 throw new IOException("HTTP " + response.getStatusLine().getStatusCode() + " for " + url);
@@ -79,11 +84,11 @@ public abstract class WebCrawler {
     protected Document postJson(String path, String jsonBody) throws IOException {
         String url = baseUrl + path;
         HttpPost post = new HttpPost(url);
-        
+
         defaultHeaders.forEach(post::setHeader);
         post.setHeader("Content-Type", "application/json");
         post.setEntity(new StringEntity(jsonBody));
-        
+
         try (CloseableHttpResponse response = httpClient.execute(post)) {
             if (response.getStatusLine().getStatusCode() != 200) {
                 throw new IOException("HTTP " + response.getStatusLine().getStatusCode() + " for " + url);

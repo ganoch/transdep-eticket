@@ -35,7 +35,6 @@ public class CrawlerFactory {
       default:
         throw new IllegalArgumentException("Unknown crawler type: " + crawlerType);
     }
-    ;
   }
 
   /**

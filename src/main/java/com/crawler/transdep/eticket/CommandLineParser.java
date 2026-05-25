@@ -102,39 +102,32 @@ public class CommandLineParser {
     }
 
     private static void printHelp() {
-        System.out.println("""
-                Website Crawler - Command Line Usage
-
-                Usage: java -cp target/classes com.crawler.transdep.eticket.CrawlerRunner [options]
-
-                Options:
-                  --url=<URL>                  Base URL of the website to crawl (required)
-                  --type=<TYPE>                Crawler type: basic, login, stateful (default: basic)
-                  --username=<USERNAME>        Username for login crawlers
-                  --password=<PASSWORD>        Password for login crawlers
-                  --delay=<MS>                 Delay between requests in milliseconds (default: 1000)
-                  --timeout=<MS>               Request timeout in milliseconds (default: 30000)
-                  --output-format=<FORMAT>     Output format: console, json, csv (default: console)
-                  --output-path=<PATH>         Output file path for non-console formats
-                  --verbose, -v                Enable verbose logging
-                  --help, -h                   Show this help message
-
-                Examples:
-                  Basic crawl:
-                    java -cp target/classes com.crawler.transdep.eticket.CrawlerRunner \\
-                      --url=https://example.com --type=basic
-
-                  Login crawl:
-                    java -cp target/classes com.crawler.transdep.eticket.CrawlerRunner \\
-                      --url=https://example.com --type=login \\
-                      --username=myuser --password=mypass \\
-                      --verbose
-
-                  With output file:
-                    java -cp target/classes com.crawler.transdep.eticket.CrawlerRunner \\
-                      --url=https://example.com --output-format=json \\
-                      --output-path=/tmp/results.json
-                """);
+        System.out.println("Website Crawler - Command Line Usage\n" +
+                "\nUsage: java -cp target/classes com.crawler.transdep.eticket.CrawlerRunner [options]\n" +
+                "\nOptions:\n" +
+                "  --url=<URL>                  Base URL of the website to crawl (required)\n" +
+                "  --type=<TYPE>                Crawler type: basic, login, stateful (default: basic)\n" +
+                "  --username=<USERNAME>        Username for login crawlers\n" +
+                "  --password=<PASSWORD>        Password for login crawlers\n" +
+                "  --delay=<MS>                 Delay between requests in milliseconds (default: 1000)\n" +
+                "  --timeout=<MS>               Request timeout in milliseconds (default: 30000)\n" +
+                "  --output-format=<FORMAT>     Output format: console, json, csv (default: console)\n" +
+                "  --output-path=<PATH>         Output file path for non-console formats\n" +
+                "  --verbose, -v                Enable verbose logging\n" +
+                "  --help, -h                   Show this help message\n" +
+                "\nExamples:\n" +
+                "  Basic crawl:\n" +
+                "    java -cp target/classes com.crawler.transdep.eticket.CrawlerRunner \\\n" +
+                "      --url=https://example.com --type=basic\n" +
+                "\n  Login crawl:\n" +
+                "    java -cp target/classes com.crawler.transdep.eticket.CrawlerRunner \\\n" +
+                "      --url=https://example.com --type=login \\\n" +
+                "      --username=myuser --password=mypass \\\n" +
+                "      --verbose\n" +
+                "\n  With output file:\n" +
+                "    java -cp target/classes com.crawler.transdep.eticket.CrawlerRunner \\\n" +
+                "      --url=https://example.com --output-format=json \\\n" +
+                "      --output-path=/tmp/results.json");
     }
 
     /**

@@ -88,8 +88,7 @@ public class TransDepEticket {
         }
         // Some departures don't have an intermediate "stop"; when that's the case
         // the page's `selectFromLocation` logic populates `to_location` based on
-        // the selected `from_location` (departure). If `stop` is not set, fall
-        // back to using `departure` as the key for TO_LOCATIONS.
+        // the selected `from_location` (departure).
 
         logger.info("Fetching destinations for stop {}", stop);
         return parseToLocationOptions(stop);
@@ -172,9 +171,8 @@ public class TransDepEticket {
             throw new IllegalStateException("Departure, stop, and destination must all be set before loading dispatcher data");
         }
 
-        String dispatcherToken = urlEncode("[object HTMLSelectElement]").replace("+", "%20");
-        String query = String.format("/homepage/e_dispatcher.php?from_location=%s&from_stop=%s&to_location=%s&dispatcher=%s&type=2",
-                urlEncode(departure), urlEncode(stop), urlEncode(destination), dispatcherToken);
+        String query = String.format("/homepage/e_dispatcher.php?from_location=%s&from_stop=%s&to_location=%s&dispatcher=&type=2",
+                urlEncode(departure), urlEncode(stop), urlEncode(destination));
 
         logger.info("Loading dispatcher select page: {}", query);
         dispatcherPage = crawler.getPageStateful(query);

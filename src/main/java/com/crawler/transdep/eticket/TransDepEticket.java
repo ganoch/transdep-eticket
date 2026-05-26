@@ -2,6 +2,7 @@ package com.crawler.transdep.eticket;
 
 import com.crawler.transdep.eticket.core.StatefulWebCrawler;
 import com.crawler.transdep.eticket.parser.HtmlParser;
+import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +12,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * TransDep E-Ticket crawler for https://eticket.transdep.mn/
@@ -28,10 +31,12 @@ public class TransDepEticket {
 
     private StatefulWebCrawler crawler;
     private String departure;
+    private String stop;
     private String destination;
     private String dispatcherId;
     private CrawlerOrchestrator orchestrator;
     private Document cachedHomePage;
+    private Document dispatcherPage;
     private long cacheTimestamp;
 
     /**
@@ -70,7 +75,7 @@ public class TransDepEticket {
      */
     public List<Map<String, String>> fetchDepartures() throws IOException {
         logger.info("Fetching departures...");
-        return fetchOptions("select[name='from_location'] option, #departure option");
+        return fetchOptions("select[name='from_location'] option");
     }
 
     /**
@@ -78,8 +83,16 @@ public class TransDepEticket {
      * @return List of destination options with name and value
      */
     public List<Map<String, String>> fetchDestinations() throws IOException {
-        logger.info("Fetching destinations...");
-        return fetchOptions("select[name='to_location'] option, #destination option");
+        if (departure == null) {
+            throw new IllegalStateException("Must call setDeparture() first");
+        }
+        // Some departures don't have an intermediate "stop"; when that's the case
+        // the page's `selectFromLocation` logic populates `to_location` based on
+        // the selected `from_location` (departure). If `stop` is not set, fall
+        // back to using `departure` as the key for TO_LOCATIONS.
+
+        logger.info("Fetching destinations for stop {}", stop);
+        return parseToLocationOptions(stop);
     }
 
     /**
@@ -94,10 +107,16 @@ public class TransDepEticket {
             List<Map<String, String>> options = parser.getElementList(selector);
 
             for (Map<String, String> option : options) {
-                if (!option.get("text").isEmpty() && !option.get("text").equalsIgnoreCase("select")) {
+                String text = option.get("text").trim();
+                if (option.containsKey("disabled")) {
+                    continue;
+                }
+                if (!text.isEmpty()
+                        && !text.equalsIgnoreCase("select")
+                        && !text.equalsIgnoreCase("сонгох")) {
                     Map<String, String> item = new HashMap<>();
-                    item.put("name", option.get("text"));
-                    item.put("value", option.getOrDefault("value", option.get("text")));
+                    item.put("name", text);
+                    item.put("value", option.getOrDefault("value", text));
                     result.add(item);
                 }
             }
@@ -134,8 +153,31 @@ public class TransDepEticket {
      */
     public void clearCache() {
         cachedHomePage = null;
+        dispatcherPage = null;
+        stop = null;
         cacheTimestamp = 0;
         logger.debug("Page cache cleared");
+    }
+
+    private boolean hasRouteSelection() {
+        return departure != null && destination != null;
+    }
+
+    private void clearDispatcherPage() {
+        dispatcherPage = null;
+    }
+
+    private void loadDispatcherPage() throws IOException {
+        if (!hasRouteSelection()) {
+            throw new IllegalStateException("Departure, stop, and destination must all be set before loading dispatcher data");
+        }
+
+        String dispatcherToken = urlEncode("[object HTMLSelectElement]").replace("+", "%20");
+        String query = String.format("/homepage/e_dispatcher.php?from_location=%s&from_stop=%s&to_location=%s&dispatcher=%s&type=2",
+                urlEncode(departure), urlEncode(stop), urlEncode(destination), dispatcherToken);
+
+        logger.info("Loading dispatcher select page: {}", query);
+        dispatcherPage = crawler.getPageStateful(query);
     }
 
     /**
@@ -146,27 +188,250 @@ public class TransDepEticket {
         logger.info("Setting departure to: {}", departureValue);
 
         this.departure = departureValue;
+        this.stop = null;
+        this.destination = null;
+        clearDispatcherPage();
 
-        // Submit form with departure selection
-        // This may trigger AJAX to load destinations
-        try {
-            Document page = crawler.getPageStateful("/");
-            HtmlParser parser = new HtmlParser(page);
+        logger.info("Departure set to: {}", departureValue);
+    }
 
-            Map<String, String> formData = parser.parseForm("form");
-            formData.put("from", departureValue);
-
-            String formBody = buildFormBody(formData);
-
-            // Post the selection
-            Document result = crawler.postPageStateful("/", formBody);
-
-            logger.info("Departure set to: {}", departureValue);
-
-        } catch (Exception e) {
-            logger.error("Error setting departure", e);
-            throw new IOException("Failed to set departure", e);
+    /**
+     * Fetch stops for the current departure
+     * @return List of stop options with name and value
+     */
+    public List<Map<String, String>> fetchStops() throws IOException {
+        if (departure == null) {
+            throw new IllegalStateException("Must call setDeparture() first");
         }
+
+        logger.info("Fetching stops for departure {}", departure);
+        return parseStopOptions(departure);
+    }
+
+    /**
+     * Set the from_stop value used to build destination options and dispatcher query
+     * @param stopValue The value of the selected stop
+     */
+    public void setStop(String stopValue) throws IOException {
+        logger.info("Setting stop to: {}", stopValue);
+
+        this.stop = stopValue;
+        this.destination = null;
+        clearDispatcherPage();
+
+        logger.info("Stop set to: {}", stopValue);
+    }
+
+    private List<Map<String, String>> parseStopOptions(String departureValue) throws IOException {
+        Document page = getOrFetchHomePage();
+        String html = page.html();
+
+        String ifBlock = extractIfBlockContent(html, departureValue);
+        if (ifBlock == null) {
+            logger.info("No stop options found for departure {} - returning empty list", departureValue);
+            return new ArrayList<>();
+        }
+
+        Pattern pattern = Pattern.compile("\\$\\(\"#from_stop\"\\)\\.html\\(\"([\\s\\S]*?)\"\\);", Pattern.DOTALL);
+        Matcher matcher = pattern.matcher(ifBlock);
+        if (!matcher.find()) {
+            logger.info("No from_stop HTML found for departure {} in matched block", departureValue);
+            return new ArrayList<>();
+        }
+
+        String optionHtml = matcher.group(1).replace("\\\"", "\"").replace("\\n", "").replace("\\r", "");
+        Document fragment = Jsoup.parseBodyFragment("<select>" + optionHtml + "</select>");
+        HtmlParser parser = new HtmlParser(fragment);
+
+        List<Map<String, String>> options = new ArrayList<>();
+        for (Map<String, String> option : parser.getElementList("option")) {
+            String text = option.get("text").trim();
+            if (option.containsKey("disabled")) {
+                continue;
+            }
+            if (!text.isEmpty()
+                    && !text.equalsIgnoreCase("select")
+                    && !text.equalsIgnoreCase("сонгох")) {
+                Map<String, String> item = new HashMap<>();
+                item.put("name", text);
+                item.put("value", option.getOrDefault("value", text));
+                options.add(item);
+            }
+        }
+
+        logger.info("stop options: {}", options.toString());
+
+        return options;
+    }
+
+    private String extractIfBlockContent(String html, String departureValue) {
+        String[] conditions = new String[] {
+                "if\\s*\\(\\s*" + Pattern.quote(departureValue) + "\\s*==\\s*val\\s*\\)",
+                "if\\s*\\(\\s*val\\s*==\\s*" + Pattern.quote(departureValue) + "\\s*\\)"
+        };
+
+        for (String condition : conditions) {
+            Matcher matcher = Pattern.compile(condition).matcher(html);
+            while (matcher.find()) {
+                int braceStart = html.indexOf('{', matcher.end());
+                if (braceStart == -1) {
+                    continue;
+                }
+                int depth = 1;
+                boolean inSingleQuote = false;
+                boolean inDoubleQuote = false;
+                boolean escape = false;
+                for (int i = braceStart + 1; i < html.length(); i++) {
+                    char c = html.charAt(i);
+                    if (escape) {
+                        escape = false;
+                        continue;
+                    }
+                    if (c == '\\') {
+                        escape = true;
+                        continue;
+                    }
+                    if (!inSingleQuote && c == '"') {
+                        inDoubleQuote = !inDoubleQuote;
+                        continue;
+                    }
+                    if (!inDoubleQuote && c == '\'') {
+                        inSingleQuote = !inSingleQuote;
+                        continue;
+                    }
+                    if (inSingleQuote || inDoubleQuote) {
+                        continue;
+                    }
+                    if (c == '{') {
+                        depth++;
+                    } else if (c == '}') {
+                        depth--;
+                        if (depth == 0) {
+                            return html.substring(braceStart + 1, i);
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private List<Map<String, String>> parseToLocationOptions(String stopValue) throws IOException {
+        Document page = getOrFetchHomePage();
+        String html = page.html();
+
+        logger.debug("Parsing to_location options for stop {}", stopValue);
+        // If stopValue is null, some departures populate #to_location directly
+        // without a stop key. In that case, match the first occurrence of
+        // $("#to_location").html("...") and parse its options.
+        if (stopValue == null) {
+            Pattern toLocationHtmlPattern = Pattern.compile("\\$\\(\\s*\"#to_location\"\\s*\\)\\.html\\(\\s*\"([\\s\\S]*?)\"\\s*\\)\\s*;", Pattern.DOTALL);
+            Matcher htmlMatcher = toLocationHtmlPattern.matcher(html);
+            if (htmlMatcher.find()) {
+                String optionHtmlRaw = htmlMatcher.group(1);
+                String optionHtml = optionHtmlRaw.replace("\\\"", "\"").replace("\\n", "").replace("\\r", "");
+                Document fragment = Jsoup.parseBodyFragment("<select>" + optionHtml + "</select>");
+                HtmlParser parser = new HtmlParser(fragment);
+
+                List<Map<String, String>> options = new ArrayList<>();
+                for (Map<String, String> option : parser.getElementList("option")) {
+                    String text = option.get("text").trim();
+                    if (option.containsKey("disabled")) {
+                        continue;
+                    }
+                    if (!text.isEmpty() && !text.equalsIgnoreCase("select") && !text.equalsIgnoreCase("сонгох")) {
+                        Map<String, String> item = new HashMap<>();
+                        item.put("name", text);
+                        item.put("value", option.getOrDefault("value", text));
+                        options.add(item);
+                    }
+                }
+                logger.info("Parsed {} to_location options from inline HTML (no stop key)", options.size());
+                return options;
+            } else {
+                logger.warn("No inline #to_location HTML found when stopValue is null");
+                return new ArrayList<>();
+            }
+        }
+
+        Pattern locationsPattern = Pattern.compile("const\\s+TO_LOCATIONS\\s*=\\s*\\{([\\s\\S]*?)\\};", Pattern.DOTALL);
+        Matcher locationsMatcher = locationsPattern.matcher(html);
+        if (locationsMatcher.find()) {
+            String locationsBody = locationsMatcher.group(1);
+            Pattern stopPattern = Pattern.compile("\"" + Pattern.quote(stopValue) + "\"\\s*:\\s*\\[([\\s\\S]*?)\\](,|\\})", Pattern.DOTALL);
+            Matcher stopMatcher = stopPattern.matcher(locationsBody);
+            if (stopMatcher.find()) {
+                String arrayBody = stopMatcher.group(1);
+                Pattern itemPattern = Pattern.compile("\\{[\\s\\S]*?\"id\"\\s*:\\s*(\\d+)[\\s\\S]*?\"name\"\\s*:\\s*\"((?:\\\\\"|[^\"])*?)\"[\\s\\S]*?\\}", Pattern.DOTALL);
+                Matcher itemMatcher = itemPattern.matcher(arrayBody);
+
+                List<Map<String, String>> options = new ArrayList<>();
+                while (itemMatcher.find()) {
+                    String id = itemMatcher.group(1);
+                    String name = itemMatcher.group(2).replace("\\\"", "\"").trim();
+                    if (name.isEmpty() || name.equalsIgnoreCase("select") || name.equalsIgnoreCase("сонгох")) {
+                        continue;
+                    }
+                    Map<String, String> item = new HashMap<>();
+                    item.put("name", name);
+                    item.put("value", id);
+                    options.add(item);
+                }
+
+                logger.info("Parsed {} to_location options for stop {} from TO_LOCATIONS", options.size(), stopValue);
+                return options;
+            } else {
+                logger.debug("TO_LOCATIONS present but no entry for key {}", stopValue);
+            }
+        } else {
+            logger.debug("TO_LOCATIONS block not found in homepage HTML for stop {} - will try inline HTML", stopValue);
+        }
+
+        // Fallback: look for inline JS that sets the #to_location HTML for a specific departure
+        // Strategy: find all occurrences of $("#to_location").html("..."), then pick the one whose
+        // nearest preceding if(...) condition contains the desired key (e.g. 22).
+        Pattern toLocationHtmlPattern = Pattern.compile("\\$\\(\\s*\"#to_location\"\\s*\\)\\.html\\(\\s*\"([\\s\\S]*?)\"\\s*\\)\\s*;", Pattern.DOTALL);
+        Matcher htmlMatcher = toLocationHtmlPattern.matcher(html);
+        while (htmlMatcher.find()) {
+            int matchStart = htmlMatcher.start();
+            String optionHtmlRaw = htmlMatcher.group(1);
+
+            // look backwards from matchStart to find the last 'if(' before this occurrence
+            int ifPos = html.lastIndexOf("if", matchStart);
+            if (ifPos == -1) {
+                continue;
+            }
+            // extract a reasonable window between 'if' and the html insertion
+            int windowStart = Math.max(0, ifPos);
+            String window = html.substring(windowStart, matchStart);
+
+            // check if the window contains the key in either ordering: if(22==val) or if(val==22)
+            String key = Pattern.quote(stopValue);
+            Pattern cond1 = Pattern.compile("if\\s*\\(\\s*" + key + "\\s*==\\s*val", Pattern.DOTALL);
+            Pattern cond2 = Pattern.compile("if\\s*\\(\\s*val\\s*==\\s*" + key, Pattern.DOTALL);
+            if (cond1.matcher(window).find() || cond2.matcher(window).find()) {
+                String optionHtml = optionHtmlRaw.replace("\\\"", "\"").replace("\\n", "").replace("\\r", "");
+                Document fragment = Jsoup.parseBodyFragment("<select>" + optionHtml + "</select>");
+                HtmlParser parser = new HtmlParser(fragment);
+
+                List<Map<String, String>> options = new ArrayList<>();
+                for (Map<String, String> option : parser.getElementList("option")) {
+                    String text = option.get("text").trim();
+                    if (!text.isEmpty() && !text.equalsIgnoreCase("select") && !text.equalsIgnoreCase("сонгох")) {
+                        Map<String, String> item = new HashMap<>();
+                        item.put("name", text);
+                        item.put("value", option.getOrDefault("value", text));
+                        options.add(item);
+                    }
+                }
+
+                logger.info("Parsed {} to_location options for key {} from inline to_location HTML", options.size(), stopValue);
+                return options;
+            }
+        }
+
+        logger.warn("No to_location data found for key {} (neither TO_LOCATIONS nor inline HTML)", stopValue);
+        return new ArrayList<>();
     }
 
     /**
@@ -176,30 +441,17 @@ public class TransDepEticket {
     public void setDestination(String destinationValue) throws IOException {
         logger.info("Setting destination to: {}", destinationValue);
 
-        this.destination = destinationValue;
-
-        // Submit form with destination selection
-        try {
-            Document page = crawler.getPageStateful("/");
-            HtmlParser parser = new HtmlParser(page);
-
-            Map<String, String> formData = parser.parseForm("form");
-            if (departure != null) {
-                formData.put("from", departure);
-            }
-            formData.put("to", destinationValue);
-
-            String formBody = buildFormBody(formData);
-
-            // Post the selection
-            Document result = crawler.postPageStateful("/", formBody);
-
-            logger.info("Destination set to: {}", destinationValue);
-
-        } catch (Exception e) {
-            logger.error("Error setting destination", e);
-            throw new IOException("Failed to set destination", e);
+        if (departure == null) {
+            throw new IllegalStateException("Must call setDeparture() and setStop() before setDestination()");
         }
+
+        this.destination = destinationValue;
+        clearDispatcherPage();
+
+        if (hasRouteSelection()) {
+            loadDispatcherPage();
+        }
+        logger.info("Destination set to: {}", destinationValue);
     }
 
     /**
@@ -209,26 +461,30 @@ public class TransDepEticket {
      */
     public List<Map<String, String>> fetchDates() throws IOException {
         if (departure == null || destination == null) {
-            throw new IllegalStateException("Must call setDeparture() and setDestination() first");
+            throw new IllegalStateException("Must call setDeparture(), setStop(), and setDestination() first");
         }
 
         logger.info("Fetching dates for {} -> {}", departure, destination);
 
         try {
-            Document page = crawler.getPageStateful("/");
-            HtmlParser parser = new HtmlParser(page);
+            if (dispatcherPage == null) {
+                loadDispatcherPage();
+            }
+            HtmlParser parser = new HtmlParser(dispatcherPage);
 
             List<Map<String, String>> dates = new ArrayList<>();
 
-            // Parse date options
-            // Adjust selectors based on actual website structure
-            List<Map<String, String>> options = parser.getElementList("select[name='date'] option, #date option");
+            // Parse date options from the dispatcher response fragment
+            List<Map<String, String>> options = parser.getElementList("select option, option");
 
             for (Map<String, String> option : options) {
-                if (!option.get("text").isEmpty() && !option.get("text").equalsIgnoreCase("select")) {
+                String text = option.get("text");
+                if (!text.isEmpty()
+                        && !text.equalsIgnoreCase("select")
+                        && !text.equalsIgnoreCase("сонгох")) {
                     Map<String, String> date = new HashMap<>();
-                    date.put("name", option.get("text"));
-                    date.put("value", option.getOrDefault("value", option.get("text")));
+                    date.put("name", text);
+                    date.put("value", option.getOrDefault("value", text));
                     dates.add(date);
                 }
             }

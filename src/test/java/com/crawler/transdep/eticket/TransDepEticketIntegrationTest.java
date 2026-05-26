@@ -45,14 +45,24 @@ public class TransDepEticketIntegrationTest {
         assertFalse("Should have departures", departures.isEmpty());
         logger.info("✓ Found {} departures", departures.size());
 
-        // Step 2: Fetch destinations
-        logger.info("Step 2: Fetching destinations...");
+        // Step 2: Set departure and fetch stops
+        logger.info("Step 2: Fetching stops for departure...");
+        String departureValue = departures.get(1).get("value");
+        eticket.setDeparture(departureValue);
+        List<Map<String, String>> stops = eticket.fetchStops();
+        if(!stops.isEmpty()){
+            eticket.setStop(stops.get(0).get("value"));
+        }
+        logger.info("✓ Found {} stops", stops.size());
+
+        // Step 3: Fetch destinations
+        logger.info("Step 3: Fetching destinations...");
         List<Map<String, String>> destinations = eticket.fetchDestinations();
         assertFalse("Should have destinations", destinations.isEmpty());
         logger.info("✓ Found {} destinations", destinations.size());
 
-        // Step 3: Set departure
-        String departureValue = departures.get(0).get("value");
+        // Step 4: Set destination
+        String destinationValue = destinations.get(0).get("value");
         String departureName = departures.get(0).get("name");
         logger.info("Step 3: Setting departure to: {}", departureName);
         eticket.setDeparture(departureValue);
@@ -60,7 +70,7 @@ public class TransDepEticketIntegrationTest {
         logger.info("✓ Departure set");
 
         // Step 4: Set destination
-        String destinationValue = destinations.get(0).get("value");
+        destinationValue = destinations.get(0).get("value");
         String destinationName = destinations.get(0).get("name");
         logger.info("Step 4: Setting destination to: {}", destinationName);
         eticket.setDestination(destinationValue);
@@ -81,14 +91,19 @@ public class TransDepEticketIntegrationTest {
     public void testTripsWorkflow() throws IOException {
         logger.info("Test: Trips Workflow (includes fetching trips)");
 
-        // Setup: departures, destinations, dates
+        // Setup: departure, stop, destination, dates
         List<Map<String, String>> departures = eticket.fetchDepartures();
-        List<Map<String, String>> destinations = eticket.fetchDestinations();
-
         String departureValue = departures.get(0).get("value");
+        eticket.setDeparture(departureValue);
+
+        List<Map<String, String>> stops = eticket.fetchStops();
+        if(!stops.isEmpty()){
+            eticket.setStop(stops.get(0).get("value"));
+        }
+        List<Map<String, String>> destinations = eticket.fetchDestinations();
+        assertFalse("Should have destinations", destinations.isEmpty());
         String destinationValue = destinations.get(0).get("value");
 
-        eticket.setDeparture(departureValue);
         eticket.setDestination(destinationValue);
 
         logger.info("Departure: {} -> Destination: {}", departureValue, destinationValue);
@@ -118,13 +133,18 @@ public class TransDepEticketIntegrationTest {
         logger.info("Test: Multiple Departure/Destination Changes");
 
         List<Map<String, String>> departures = eticket.fetchDepartures();
-        List<Map<String, String>> destinations = eticket.fetchDestinations();
 
-        if (departures.size() >= 2 && destinations.size() >= 2) {
+        if (departures.size() >= 2) {
             // Change 1
             String dep1 = departures.get(0).get("value");
-            String dest1 = destinations.get(0).get("value");
             eticket.setDeparture(dep1);
+            List<Map<String, String>> stops1 = eticket.fetchStops();
+            if(!stops1.isEmpty()){
+                eticket.setStop(stops1.get(0).get("value"));
+            }
+            List<Map<String, String>> destinations1 = eticket.fetchDestinations();
+            assertFalse("Should have destinations for first departure", destinations1.isEmpty());
+            String dest1 = destinations1.get(0).get("value");
             eticket.setDestination(dest1);
             logger.info("Selection 1: {} -> {}", dep1, dest1);
 
@@ -133,8 +153,14 @@ public class TransDepEticketIntegrationTest {
 
             // Change 2
             String dep2 = departures.get(1).get("value");
-            String dest2 = destinations.get(1).get("value");
             eticket.setDeparture(dep2);
+            List<Map<String, String>> stops2 = eticket.fetchStops();
+            if(!stops2.isEmpty()){
+                eticket.setStop(stops2.get(0).get("value"));
+            }
+            List<Map<String, String>> destinations2 = eticket.fetchDestinations();
+            assertFalse("Should have destinations for second departure", destinations2.isEmpty());
+            String dest2 = destinations2.get(0).get("value");
             eticket.setDestination(dest2);
             logger.info("Selection 2: {} -> {}", dep2, dest2);
 

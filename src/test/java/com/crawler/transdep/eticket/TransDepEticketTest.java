@@ -56,6 +56,16 @@ public class TransDepEticketTest {
     @Test
     public void testFetchDestinations() throws IOException {
         logger.info("Test: Fetch Destinations");
+
+        List<Map<String, String>> departures = eticket.fetchDepartures();
+        assertFalse("Should have departures", departures.isEmpty());
+
+        eticket.setDeparture(departures.get(1).get("value"));
+        List<Map<String, String>> stops = eticket.fetchStops();
+        if(!stops.isEmpty()){
+            eticket.setStop(stops.get(0).get("value"));
+        }
+
         List<Map<String, String>> destinations = eticket.fetchDestinations();
 
         assertNotNull("Destinations should not be null", destinations);
@@ -78,6 +88,12 @@ public class TransDepEticketTest {
         long startTime = System.currentTimeMillis();
         List<Map<String, String>> departures = eticket.fetchDepartures();
         long time1 = System.currentTimeMillis() - startTime;
+
+        eticket.setDeparture(departures.get(0).get("value"));
+        List<Map<String, String>> stops = eticket.fetchStops();
+        if(!stops.isEmpty()){
+            eticket.setStop(stops.get(0).get("value"));
+        }
 
         startTime = System.currentTimeMillis();
         List<Map<String, String>> destinations = eticket.fetchDestinations();
@@ -119,7 +135,12 @@ public class TransDepEticketTest {
         List<Map<String, String>> departures = eticket.fetchDepartures();
         eticket.setDeparture(departures.get(0).get("value"));
 
-        // Then set destination
+        // Then set stop and fetch destinations
+        List<Map<String, String>> stops = eticket.fetchStops();
+        if(!stops.isEmpty()){
+            eticket.setStop(stops.get(0).get("value"));
+        }
+
         List<Map<String, String>> destinations = eticket.fetchDestinations();
         assertFalse("Should have destinations", destinations.isEmpty());
 
@@ -137,8 +158,16 @@ public class TransDepEticketTest {
         eticket.setDeparture("22");
         assertEquals("22", eticket.getDeparture());
 
-        eticket.setDestination("3");
-        assertEquals("3", eticket.getDestination());
+        List<Map<String, String>> stops = eticket.fetchStops();
+        if(!stops.isEmpty()){
+            eticket.setStop(stops.get(0).get("value"));
+        }
+
+        List<Map<String, String>> destinations = eticket.fetchDestinations();
+        assertFalse("Should have destinations", destinations.isEmpty());
+        String destinationValue = destinations.get(0).get("value");
+        eticket.setDestination(destinationValue);
+        assertEquals(destinationValue, eticket.getDestination());
 
         eticket.setDispatcherId("1768876");
         assertEquals("1768876", eticket.getDispatcherId());

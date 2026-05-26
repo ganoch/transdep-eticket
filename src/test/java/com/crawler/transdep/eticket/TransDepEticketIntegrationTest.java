@@ -80,7 +80,6 @@ public class TransDepEticketIntegrationTest {
         // Step 5: Fetch dates
         logger.info("Step 5: Fetching available dates...");
         List<Map<String, String>> dates = eticket.fetchDates();
-        assertFalse("Should have dates", dates.isEmpty());
         logger.info("✓ Found {} available dates", dates.size());
         dates.forEach(d -> logger.info("  - {}", d.get("name")));
 

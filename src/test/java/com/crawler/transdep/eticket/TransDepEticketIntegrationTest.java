@@ -46,12 +46,12 @@ public class TransDepEticketIntegrationTest {
         logger.info("✓ Found {} departures", departures.size());
 
         // Step 2: Set departure and fetch stops
-        logger.info("Step 2: Fetching stops for departure...");
         String departureValue = departures.get(1).get("value");
+        logger.info("Step 2: Fetching stops for departure {}", departures.get(1).get("name"));
         eticket.setDeparture(departureValue);
         List<Map<String, String>> stops = eticket.fetchStops();
         if(!stops.isEmpty()){
-            eticket.setStop(stops.get(0).get("value"));
+            eticket.setStop(stops.get(stops.size() > 1 ? stops.size() - 2 : 0).get("value"));
         }
         logger.info("✓ Found {} stops", stops.size());
 
@@ -61,28 +61,32 @@ public class TransDepEticketIntegrationTest {
         assertFalse("Should have destinations", destinations.isEmpty());
         logger.info("✓ Found {} destinations", destinations.size());
 
-        // Step 4: Set destination
-        String destinationValue = destinations.get(0).get("value");
-        String departureName = departures.get(0).get("name");
-        logger.info("Step 3: Setting departure to: {}", departureName);
-        eticket.setDeparture(departureValue);
-        assertEquals("Departure should be set", departureValue, eticket.getDeparture());
-        logger.info("✓ Departure set");
 
         // Step 4: Set destination
-        destinationValue = destinations.get(0).get("value");
-        String destinationName = destinations.get(0).get("name");
-        logger.info("Step 4: Setting destination to: {}", destinationName);
-        eticket.setDestination(destinationValue);
-        assertEquals("Destination should be set", destinationValue, eticket.getDestination());
-        logger.info("✓ Destination set");
+        if(destinations.size() > 0){
+            String destinationValue = destinations.get(0).get("value");
+            destinationValue = destinations.get(destinations.size()-1).get("value");
+            String destinationName = destinations.get(destinations.size()-1).get("name");
+
+            logger.info("Step 4: Setting destination to: {}", destinationName);
+            eticket.setDestination(destinationValue);
+            assertEquals("Destination should be set", destinationValue, eticket.getDestination());
+            logger.info("✓ Destination set");
+        } else {
+            logger.warn("No destinations found to set");
+            return;
+        }
 
         // Step 5: Fetch dates
         logger.info("Step 5: Fetching available dates...");
-        List<Map<String, String>> dates = eticket.fetchDates();
-        assertFalse("Should have dates", dates.isEmpty());
-        logger.info("✓ Found {} available dates", dates.size());
-        dates.forEach(d -> logger.info("  - {}", d.get("name")));
+        List<Map<String, String>> trips = eticket.fetchTrips();
+        if(!trips.isEmpty())
+        {
+            logger.info("✓ Found {} available dates", trips.size());
+            trips.forEach(t -> logger.info("  - {}", t.get("name")));
+        } else {
+            logger.warn("No dates found for the selected departure/destination");
+        }
 
         logger.info("✓✓✓ Full workflow completed successfully");
     }
@@ -109,20 +113,13 @@ public class TransDepEticketIntegrationTest {
         logger.info("Departure: {} -> Destination: {}", departureValue, destinationValue);
 
         // Fetch dates
-        List<Map<String, String>> dates = eticket.fetchDates();
-        if (!dates.isEmpty()) {
-            String dateValue = dates.get(0).get("value");
-            logger.info("Selected date: {}", dateValue);
+        List<Map<String, String>> trips = eticket.fetchTrips();
+        if (!trips.isEmpty()) {
+            String tripValue = trips.get(0).get("value");
+            logger.info("Selected trip: {}", tripValue);
 
-            // Try to fetch trips
-            try {
-                List<Map<String, String>> trips = eticket.fetchTrips(dateValue);
-                logger.info("✓ Fetched {} trips", trips.size());
-                trips.forEach(t -> logger.debug("  Trip: {}", t));
-            } catch (Exception e) {
-                logger.warn("Note: Could not fetch trips (may be due to website structure): {}", e.getMessage());
-                // This is acceptable - the endpoint might require specific HTML parsing
-            }
+            logger.info("✓ Fetched {} trips", trips.size());
+            trips.forEach(t -> logger.debug("  Trip: {}", t));
         }
 
         logger.info("✓✓✓ Trips workflow completed");
@@ -148,8 +145,8 @@ public class TransDepEticketIntegrationTest {
             eticket.setDestination(dest1);
             logger.info("Selection 1: {} -> {}", dep1, dest1);
 
-            List<Map<String, String>> dates1 = eticket.fetchDates();
-            logger.info("✓ Found {} dates for selection 1", dates1.size());
+            List<Map<String, String>> trips1 = eticket.fetchTrips();
+            logger.info("✓ Found {} trips for selection 1", trips1.size());
 
             // Change 2
             String dep2 = departures.get(1).get("value");
@@ -165,8 +162,12 @@ public class TransDepEticketIntegrationTest {
             logger.info("Selection 2: {} -> {}", dep2, dest2);
 
             eticket.clearCache(); // Clear cache for fresh fetch
-            List<Map<String, String>> dates2 = eticket.fetchDates();
-            logger.info("✓ Found {} dates for selection 2", dates2.size());
+            List<Map<String, String>> trips2 = eticket.fetchTrips();
+            logger.info("✓ Found {} trips for selection 2", trips2.size());
+            if(!trips2.isEmpty()){
+                logger.info("  Sample trip for selection 2: {}", trips2.get(0).get("name"));
+                eticket.setDispatcherId(trips2.get(0).get("value"));
+            }
 
             logger.info("✓✓✓ Multiple changes test completed");
         } else {

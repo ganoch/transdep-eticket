@@ -111,7 +111,7 @@ public class TransDepEticketTest {
     @Test(expected = IllegalStateException.class)
     public void testFetchDatesWithoutDeparture() throws IOException {
         logger.info("Test: Fetch Dates Without Departure (should fail)");
-        eticket.fetchDates(); // Should throw IllegalStateException
+        eticket.fetchTrips(); // Should throw IllegalStateException
     }
 
     @Test

@@ -459,9 +459,9 @@ public class TransDepEticket {
      * Must call setDeparture() and setDestination() first
      * @return List of available dates
      */
-    public List<Map<String, String>> fetchDates() throws IOException {
+    public List<Map<String, String>> fetchTrips() throws IOException {
         if (departure == null || destination == null) {
-            throw new IllegalStateException("Must call setDeparture(), setStop(), and setDestination() first");
+            throw new IllegalStateException("Must call setDeparture(), and setDestination() first");
         }
 
         logger.info("Fetching dates for {} -> {}", departure, destination);
@@ -495,54 +495,6 @@ public class TransDepEticket {
         } catch (Exception e) {
             logger.error("Error fetching dates", e);
             throw new IOException("Failed to fetch dates", e);
-        }
-    }
-
-    /**
-     * Fetch available trips for the current departure/destination and date
-     * Requests: /homepage/e_ticket_seat.php?from_location=X&from_stop=&to_location=Y&dispatcher_id=Z
-     * @param dateValue The date to fetch trips for (contains dispatcher_id in format "date|dispatcherId")
-     * @return List of available trips with details
-     */
-    public List<Map<String, String>> fetchTrips(String dateValue) throws IOException {
-        if (departure == null || destination == null) {
-            throw new IllegalStateException("Must call setDeparture() and setDestination() first");
-        }
-
-        logger.info("Fetching trips for {} -> {} on {}", departure, destination, dateValue);
-
-        try {
-            // Extract dispatcher_id from dateValue (format: "date|dispatcherId")
-            String actualDate = dateValue;
-            if (dateValue.contains("|")) {
-                String[] parts = dateValue.split("\\|");
-                actualDate = parts[0];
-                dispatcherId = parts[1];
-            } else if (dispatcherId == null) {
-                logger.warn("Dispatcher ID not found in dateValue: {}", dateValue);
-            }
-
-            // Build query string for e_ticket_seat.php
-            String query = String.format("/homepage/e_ticket_seat.php?from_location=%s&from_stop=&to_location=%s&dispatcher_id=%s",
-                    departure, destination, dispatcherId != null ? dispatcherId : "");
-
-            logger.info("Requesting seat page: {}", query);
-            Document seatPage = crawler.getPageStateful(query);
-            HtmlParser parser = new HtmlParser(seatPage);
-
-            List<Map<String, String>> trips = new ArrayList<>();
-
-            // Parse trip/seat results from partial HTML
-            // Adjust selectors based on actual website structure
-            List<Map<String, String>> tripElements = parser.getElementList("div.trip-result, tr.trip-row, .trip-item, div[class*='bus'], div[class*='seat']");
-            trips.addAll(tripElements);
-
-            logger.info("Found {} trips/buses", trips.size());
-            return trips;
-
-        } catch (Exception e) {
-            logger.error("Error fetching trips", e);
-            throw new IOException("Failed to fetch trips", e);
         }
     }
 

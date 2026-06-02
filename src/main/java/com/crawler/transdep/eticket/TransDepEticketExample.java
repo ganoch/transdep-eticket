@@ -54,21 +54,12 @@ public class TransDepEticketExample {
                 return;
             }
 
-            // Step 5: Fetch available dates
-            logger.info("\n=== Step 5: Fetch Available Dates ===");
-            List<Map<String, String>> dates = eticket.fetchDates();
-            logger.info("Available dates:");
-            dates.forEach(d -> logger.info("  - {} ({})", d.get("name"), d.get("value")));
 
             // Step 6: Fetch trips for the first available date
-            if (!dates.isEmpty()) {
-                logger.info("\n=== Step 6: Fetch Trips ===");
-                String dateValue = dates.get(0).get("value");
-                logger.info("Fetching trips for date: {}", dates.get(0).get("name"));
-                List<Map<String, String>> trips = eticket.fetchTrips(dateValue);
-                logger.info("Available trips: {}", trips.size());
-                trips.forEach(t -> logger.debug("  Trip: {}", t));
-            }
+            logger.info("\n=== Step 6: Fetch Trips ===");
+            List<Map<String, String>> trips = eticket.fetchTrips();
+            logger.info("Available trips: {}", trips.size());
+            trips.forEach(t -> logger.debug("  Trip: {}", t));
 
             logger.info("\n=== Crawling completed successfully ===");
 
@@ -102,11 +93,8 @@ public class TransDepEticketExample {
             eticket.setDeparture(departures.get(0).get("value"));
             eticket.setDestination(destinations.get(0).get("value"));
 
-            // Get available dates
-            List<Map<String, String>> dates = eticket.fetchDates();
-
             // Get trips
-            List<Map<String, String>> trips = eticket.fetchTrips(dates.get(0).get("value"));
+            List<Map<String, String>> trips = eticket.fetchTrips();
 
             System.out.println("Found " + trips.size() + " trips");
 

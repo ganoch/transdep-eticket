@@ -8,6 +8,12 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
+import java.lang.reflect.Field;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import com.crawler.transdep.eticket.core.StatefulWebCrawler;
 
 import static org.junit.Assert.*;
 
@@ -185,6 +191,155 @@ public class TransDepEticketTest {
         eticket.clearCache();
         // Cache should be cleared
         logger.info("✓ Cache cleared successfully");
+    }
+
+    @Test
+    public void testFetchSeatsParsing() throws Exception {
+        logger.info("Test: Fetch Seats Parsing");
+
+        final String html = "<script language=\"javascript\">"
+            +"document.getElementById(\"child_price\").value=\"22500\";"
+            +"document.getElementById(\"adult_price\").value=\"45000\";"
+            +"document.getElementById(\"ic_name\").innerHTML=\"Нэйшнл эженси\";"
+            +"document.getElementById(\"adult_insurance_price\").value=\"1600\";"
+            +"document.getElementById(\"child_insurance_price\").value=\"800\";"
+            +"document.getElementById(\"os_child_price\").innerHTML=\"0\";"
+            +"document.getElementById(\"os_adult_price\").innerHTML=\"0\";"
+            +"</script>"
+            +"<style>"
+            +".seatBus{"
+            +"background:url(pg/wallpaper/bus_middle.png) repeat-x;"
+            +"}"
+            +".seatBus td{"
+            +"margin:0px;"
+            +"padding:0px;"
+            +"font-size:10px;"
+            +"}"
+            +".seatMidBus{"
+            +"background:url(pg/wallpaper/mid_bus.png) no-repeat;"
+            +"}"
+            +"</style>"
+            +"<div class=\"uk-grid uk-grid-collapse\">"
+            +"<div class=\"uk-width-1-1@s uk-width-1-3@m uk-width-1-3@l uk-grid uk-grid-collapse\" style=\"text-align: left;\">"
+            +"<div class=\"uk-width-1-1@m uk-width-2-5@l\">"
+            +"Чиглэл:		</div>"
+            +"<div class=\"uk-width-1-1@m uk-width-3-5@l\">"
+            +"<strong>Ар.Эрдэнэбулган - УБ - Ар.Эрдэнэбулган</strong>"
+            +"</div>"
+            +"<div class=\"uk-width-1-1@m uk-width-2-5@l\">"
+            +"Хөдлөх огноо:		</div>"
+            +"<div class=\"uk-width-1-1@m uk-width-3-5@l\">"
+            +"<strong>2026-06-06 08:00</strong>"
+            +"</div>"
+            +"<div class=\"uk-width-1-1\">"
+            +"</div>"
+            +"<div class=\"uk-width-1-1@m uk-width-2-5@l\">"
+            +"ААН нэр:		</div>"
+            +"<div class=\"uk-width-1-1@m uk-width-3-5@l\">"
+            +"<strong>Шуудан Тээх ХХК</strong>"
+            +"</div>"
+            +"<div class=\"uk-width-1-1@m uk-width-2-5@l\">"
+            +"Марк загвар:		</div>"
+            +"<div class=\"uk-width-1-1@m uk-width-3-5@l\">"
+            +"<strong>Universe-45</strong>"
+            +"</div>"
+            +"<div class=\"uk-width-1-1@m uk-width-2-5@l\">"
+            +"Улсын дугаар:		</div>"
+            +"<div class=\"uk-width-1-1@m uk-width-3-5@l\">"
+            +"<strong>75-90 УЕН</strong>"
+            +"</div>"
+            +"</div>"
+            +"<div class=\"uk-width-1-1@s uk-width-2-3@m uk-width-2-3@l\">"
+            +"<table cellpadding=\"0\" cellspacing=\"0\" border=\"0\" class=\"seatBus\" align=\"center\">"
+            +"<tr>"
+            +"<td rowspan=\"7\" style=\"background:url(pg/wallpaper/bus_front.png) no-repeat; width:88px; height:150px;\"></td>"
+            +"<td colspan=\"33\" height=\"8\"></td>"
+            +"<td rowspan=\"7\" style=\"background:url(pg/wallpaper/bus_rear.png) no-repeat; width:30px; height:150px;\"></td>"
+            +"</tr>"
+            +"<tr>"
+            +"<td colspan=\"3\"></td>"
+            +"<td colspan=\"3\"></td>"
+            +"<td colspan=\"3\"></td>"
+            +"<td colspan=\"3\"></td>"
+            +"<td colspan=\"3\"></td>"
+            +"<td colspan=\"3\"></td>"
+            +"<td colspan=\"3\"></td>"
+            +"<td colspan=\"3\"></td>"
+            +"<td colspan=\"3\"></td>"
+            +"<td colspan=\"3\"></td>"
+            +"<td width=\"10\">&nbsp;</td>"
+            +"<td align=\"right\"><div style=\"\">43</div></td>"
+            +"<td><div style=\"\"><input type=\"checkbox\" id=\"seat_number43\" onchange=\"checkSeats()\" title=\"43\"   /></div></td>"
+            +"</tr>"
+            +"<tr>"
+            +"<td width=\"10\">&nbsp;</td>"
+            +"<td align=\"right\"><div style=\"background:#FF0\">2</div></td>"
+            +"<td><div style=\"background:#FF0\"><input type=\"checkbox\" id=\"seat_number2\" onchange=\"checkSeats()\" title=\"2\"   /></div></td>"
+            +"<td width=\"10\">&nbsp;</td>"
+            +"<td align=\"right\"><div style=\"\">6</div></td>"
+            +"<td><div style=\"\"><input type=\"checkbox\" id=\"seat_number6\" onchange=\"checkSeats()\" title=\"6\" disabled checked /></div></td>"
+            +"<td width=\"10\">&nbsp;</td>"
+            +"</tr>"
+            +"<tr>"
+            +"<td colspan=\"33\" height=\"8\"></td>"
+            +"</tr>"
+            +"</table>"
+            +"<div class=\"uk-width-1-1\" style=\"text-align:center; font-size:11px; height: 10px;\">"
+            +"Чагтлагдаагүй суудлуудаас сонгоно уу. "
+            +"<span style='background:#FF0;'><input type='checkbox'></span> "
+            +"- Хөгжлийн бэрхшээлтэй иргэдэд зориулсан суудал"
+            +"</div>"
+            +"</div>"
+            +"</div>";
+
+        // Stub crawler that returns our HTML for any seat page request
+        StatefulWebCrawler stubCrawler = new StatefulWebCrawler("https://eticket.transdep.mn") {
+            @Override
+            public Document getPageStateful(String path) throws IOException {
+                return Jsoup.parse(html, "https://eticket.transdep.mn");
+            }
+
+            @Override
+            public void crawl() throws IOException {
+                // no-op for test
+            }
+        };
+
+        // Inject stub crawler into eticket instance via reflection
+        Field crawlerField = TransDepEticket.class.getDeclaredField("crawler");
+        crawlerField.setAccessible(true);
+        crawlerField.set(eticket, stubCrawler);
+
+        // Prepare state
+        eticket.setDeparture("1");
+        eticket.setStop("12");
+        eticket.setDestination("215");
+        eticket.setDispatcherId("1780135");
+
+        List<Map<String, String>> seats = eticket.fetchSeats();
+        assertNotNull("Seats should not be null", seats);
+        assertEquals("Should parse three seats", 3, seats.size());
+
+        Map<String, String> map = new HashMap<>();
+        for (Map<String, String> s : seats) {
+            map.put(s.get("id"), s.get("status"));
+        }
+
+        assertEquals("available", map.get("seat_number43"));
+        assertEquals("accessible", map.get("seat_number2"));
+        assertEquals("unavailable", map.get("seat_number6"));
+
+        Map<String, String> metadata = eticket.getSeatPageMetadata();
+        assertNotNull("Seat page metadata should not be null", metadata);
+        assertEquals("22500", metadata.get("child_price"));
+        assertEquals("45000", metadata.get("adult_price"));
+        assertEquals("Нэйшнл эженси", metadata.get("ic_name"));
+        assertEquals("1600", metadata.get("adult_insurance_price"));
+        assertEquals("800", metadata.get("child_insurance_price"));
+        assertEquals("0", metadata.get("os_child_price"));
+        assertEquals("0", metadata.get("os_adult_price"));
+
+        logger.info("✓ Seat parsing test passed");
     }
 
     public void tearDown() throws IOException {

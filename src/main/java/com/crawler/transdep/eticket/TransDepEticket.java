@@ -37,6 +37,7 @@ public class TransDepEticket {
     private CrawlerOrchestrator orchestrator;
     private Document cachedHomePage;
     private Document dispatcherPage;
+    private Map<String, String> seatPageMetadata;
     private long cacheTimestamp;
 
     /**
@@ -153,6 +154,7 @@ public class TransDepEticket {
     public void clearCache() {
         cachedHomePage = null;
         dispatcherPage = null;
+        seatPageMetadata = null;
         stop = null;
         cacheTimestamp = 0;
         logger.debug("Page cache cleared");
@@ -497,6 +499,136 @@ public class TransDepEticket {
     }
 
     /**
+     * Fetch available seats for the currently selected dispatcher/trip
+     * Requires: setDeparture(), setDestination(), and setDispatcherId() (trip) to be called first
+     * @return List of seat descriptors (id, label, status)
+     */
+    public List<Map<String, String>> fetchSeats() throws IOException {
+        if (departure == null || destination == null || dispatcherId == null) {
+            throw new IllegalStateException("Must call setDeparture(), setDestination(), and setDispatcherId() first");
+        }
+
+        logger.info("Fetching seats for dispatcher {} ({} -> {})", dispatcherId, departure, destination);
+
+        try {
+            // Request the dedicated seat page for the selected dispatcher/trip
+            String seatQuery = String.format("/homepage/e_ticket_seat.php?from_location=%s&from_stop=%s&to_location=%s&dispatcher_id=%s",
+                    urlEncode(departure), urlEncode(stop), urlEncode(destination), urlEncode(dispatcherId));
+
+            logger.info("Loading seat page: {}", seatQuery);
+            Document seatPage = crawler.getPageStateful(seatQuery);
+            HtmlParser parser = new HtmlParser(seatPage);
+            List<Map<String, String>> seats = new ArrayList<>();
+
+            // Prefer precise parsing: find seat checkboxes and infer availability
+            org.jsoup.nodes.Document doc = parser.getDocument();
+            org.jsoup.select.Elements inputs = doc.select("input[type=checkbox][id^=seat_number]");
+
+            for (org.jsoup.nodes.Element inputEl : inputs) {
+                String rawId = inputEl.attr("id");
+                String title = inputEl.attr("title");
+
+                // Parent div may carry style background for accessible (disabled-person) seats
+                org.jsoup.nodes.Element parent = inputEl.parent();
+                String parentStyle = parent != null ? parent.attr("style") : "";
+
+                boolean styleIndicatesAccessible = parentStyle != null && (parentStyle.toLowerCase().contains("#ff0")
+                        || parentStyle.toLowerCase().contains("background"));
+                boolean disabled = inputEl.hasAttr("disabled") || "true".equalsIgnoreCase(inputEl.attr("aria-disabled"));
+
+                String status;
+                if (disabled) {
+                    // explicitly disabled checkbox => unavailable
+                    status = "unavailable";
+                } else if (styleIndicatesAccessible) {
+                    // seats styled with yellow/background indicate accessible (for disabled persons)
+                    status = "accessible";
+                } else {
+                    // default: not disabled and not accessible-styled => available
+                    status = "available";
+                }
+
+                Map<String, String> seat = new HashMap<>();
+                seat.put("id", rawId != null ? rawId : "");
+                seat.put("label", title != null ? title : "");
+                seat.put("status", status);
+                seats.add(seat);
+            }
+
+            // Parse metadata assignments from embedded seat page script
+            seatPageMetadata = extractSeatPageMetadata(seatPage.html());
+
+            if (!seats.isEmpty()) {
+                logger.info("Parsed {} seats from seat page", seats.size());
+                return seats;
+            } else {
+                logger.warn("No seat checkboxes found on seat page, returning empty list");
+                return new ArrayList<>();
+            }
+        } catch (Exception e) {
+            logger.error("Error fetching seats", e);
+            throw new IOException("Failed to fetch seats", e);
+        }
+    }
+
+    private Map<String, String> extractSeatPageMetadata(String html) {
+        Map<String, String> metadata = new HashMap<>();
+
+        // Parse JS assignments first
+        Pattern scriptPattern = Pattern.compile("document\\.getElementById\\(\\\"([^\\\"]+)\\\"\\)\\.(?:value|innerHTML)\\s*=\\s*\\\"([^\\\"]*)\\\";", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = scriptPattern.matcher(html);
+        while (matcher.find()) {
+            String key = matcher.group(1);
+            String value = matcher.group(2);
+            metadata.put(key, value);
+        }
+
+        // Parse HTML blocks like label/value pairs
+        org.jsoup.nodes.Document doc = Jsoup.parse(html);
+        org.jsoup.select.Elements strongElements = doc.select("div > strong");
+        for (org.jsoup.nodes.Element strong : strongElements) {
+            String value = strong.text().trim();
+            org.jsoup.nodes.Element container = strong.parent();
+            org.jsoup.nodes.Element labelElement = container != null ? container.previousElementSibling() : null;
+            if (labelElement == null) {
+                continue;
+            }
+
+            String labelText = labelElement.text().trim().replace("\u00A0", " ");
+            if (labelText.endsWith(":")) {
+                labelText = labelText.substring(0, labelText.length() - 1).trim();
+            }
+            if (labelText.isEmpty()) {
+                continue;
+            }
+
+            String key = normalizeSeatPageLabel(labelText);
+            if (!metadata.containsKey(key)) {
+                metadata.put(key, value);
+            }
+        }
+
+        return metadata;
+    }
+
+    private String normalizeSeatPageLabel(String label) {
+        switch (label) {
+            case "Чиглэл":
+                return "route";
+            case "Хөдлөх огноо":
+                return "departure_datetime";
+            case "ААН нэр":
+                return "company_name";
+            case "Марк загвар":
+                return "bus_model";
+            case "Улсын дугаар":
+                return "plate_number";
+            default:
+                return label.replaceAll("\\s+", "_").toLowerCase();
+        }
+    }
+
+    /**
      * Get current departure
      */
     public String getDeparture() {
@@ -515,6 +647,13 @@ public class TransDepEticket {
      */
     public String getDispatcherId() {
         return dispatcherId;
+    }
+
+    /**
+     * Get metadata exposed by the seat page script (prices, insurance, company name, etc.)
+     */
+    public Map<String, String> getSeatPageMetadata() {
+        return seatPageMetadata;
     }
 
     /**

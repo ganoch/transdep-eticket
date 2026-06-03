@@ -31,20 +31,20 @@
     <!-- For PGP decryption and signature check -->
     <dependency>
       <groupId>org.bouncycastle</groupId>
-      <artifactId>bcprov-jdk15on</artifactId>
-      <version>1.70</version>      <!-- Use available version -->
+      <artifactId>bcprov-jdk18on</artifactId>
+      <version>1.78.1</version>      <!-- Use available version -->
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
-      <artifactId>bcpg-jdk15on</artifactId>
-      <version>1.70</version>      <!-- Use available version -->
+      <artifactId>bcpg-jdk18on</artifactId>
+      <version>1.78.1</version>      <!-- Use available version -->
     </dependency>
 
     <!-- For JOSE (JWE) decryption -->
     <dependency>
       <groupId>com.nimbusds</groupId>
       <artifactId>nimbus-jose-jwt</artifactId>
-      <version>9.31</version>
+      <version>9.37.4</version>
     </dependency>
 
     <!-- For JSON parsing -->
@@ -102,7 +102,7 @@
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <version>1.2.11</version>
+      <version>1.2.13</version>
       <scope>test</scope>
     </dependency>
 </dependencies>

@@ -38,6 +38,7 @@ public class TransDepEticket {
     private Document cachedHomePage;
     private Document dispatcherPage;
     private Map<String, String> seatPageMetadata;
+    private Map<String, String> seatPagePricing;
     private long cacheTimestamp;
 
     /**
@@ -155,6 +156,7 @@ public class TransDepEticket {
         cachedHomePage = null;
         dispatcherPage = null;
         seatPageMetadata = null;
+        seatPagePricing = null;
         stop = null;
         cacheTimestamp = 0;
         logger.debug("Page cache cleared");
@@ -555,8 +557,10 @@ public class TransDepEticket {
                 seats.add(seat);
             }
 
-            // Parse metadata assignments from embedded seat page script
-            seatPageMetadata = extractSeatPageMetadata(seatPage.html());
+            // Parse metadata and pricing from embedded seat page script
+            Map<String, Object> extracted = extractSeatPageData(seatPage.html());
+            seatPageMetadata = (Map<String, String>) extracted.get("metadata");
+            seatPagePricing = (Map<String, String>) extracted.get("pricing");
 
             if (!seats.isEmpty()) {
                 logger.info("Parsed {} seats from seat page", seats.size());
@@ -571,8 +575,18 @@ public class TransDepEticket {
         }
     }
 
-    private Map<String, String> extractSeatPageMetadata(String html) {
+    private Map<String, Object> extractSeatPageData(String html) {
         Map<String, String> metadata = new HashMap<>();
+        Map<String, String> pricing = new HashMap<>();
+
+        // Pricing-related fields
+        java.util.Set<String> pricingFields = new java.util.HashSet<>();
+        pricingFields.add("child_price");
+        pricingFields.add("adult_price");
+        pricingFields.add("adult_insurance_price");
+        pricingFields.add("child_insurance_price");
+        pricingFields.add("os_child_price");
+        pricingFields.add("os_adult_price");
 
         // Parse JS assignments first
         Pattern scriptPattern = Pattern.compile("document\\.getElementById\\(\\\"([^\\\"]+)\\\"\\)\\.(?:value|innerHTML)\\s*=\\s*\\\"([^\\\"]*)\\\";", Pattern.CASE_INSENSITIVE);
@@ -580,7 +594,11 @@ public class TransDepEticket {
         while (matcher.find()) {
             String key = matcher.group(1);
             String value = matcher.group(2);
-            metadata.put(key, value);
+            if (pricingFields.contains(key)) {
+                pricing.put(key, value);
+            } else {
+                metadata.put(key, value);
+            }
         }
 
         // Parse HTML blocks like label/value pairs
@@ -608,7 +626,10 @@ public class TransDepEticket {
             }
         }
 
-        return metadata;
+        Map<String, Object> result = new HashMap<>();
+        result.put("metadata", metadata);
+        result.put("pricing", pricing);
+        return result;
     }
 
     private String normalizeSeatPageLabel(String label) {
@@ -650,10 +671,17 @@ public class TransDepEticket {
     }
 
     /**
-     * Get metadata exposed by the seat page script (prices, insurance, company name, etc.)
+     * Get metadata exposed by the seat page (route, departure time, company, bus model, plate number, etc.)
      */
     public Map<String, String> getSeatPageMetadata() {
         return seatPageMetadata;
+    }
+
+    /**
+     * Get pricing exposed by the seat page script (child/adult prices, insurance costs, etc.)
+     */
+    public Map<String, String> getSeatPagePricing() {
+        return seatPagePricing;
     }
 
     /**

@@ -329,15 +329,29 @@ public class TransDepEticketTest {
         assertEquals("accessible", map.get("seat_number2"));
         assertEquals("unavailable", map.get("seat_number6"));
 
+        // Verify metadata map contains route/trip/company info
         Map<String, String> metadata = eticket.getSeatPageMetadata();
         assertNotNull("Seat page metadata should not be null", metadata);
-        assertEquals("22500", metadata.get("child_price"));
-        assertEquals("45000", metadata.get("adult_price"));
+        assertEquals("Ар.Эрдэнэбулган - УБ - Ар.Эрдэнэбулган", metadata.get("route"));
+        assertEquals("2026-06-06 08:00", metadata.get("departure_datetime"));
+        assertEquals("Шуудан Тээх ХХК", metadata.get("company_name"));
+        assertEquals("Universe-45", metadata.get("bus_model"));
+        assertEquals("75-90 УЕН", metadata.get("plate_number"));
         assertEquals("Нэйшнл эженси", metadata.get("ic_name"));
-        assertEquals("1600", metadata.get("adult_insurance_price"));
-        assertEquals("800", metadata.get("child_insurance_price"));
-        assertEquals("0", metadata.get("os_child_price"));
-        assertEquals("0", metadata.get("os_adult_price"));
+
+        // Verify pricing map contains pricing info (NOT in metadata)
+        Map<String, String> pricing = eticket.getSeatPagePricing();
+        assertNotNull("Seat page pricing should not be null", pricing);
+        assertEquals("22500", pricing.get("child_price"));
+        assertEquals("45000", pricing.get("adult_price"));
+        assertEquals("1600", pricing.get("adult_insurance_price"));
+        assertEquals("800", pricing.get("child_insurance_price"));
+        assertEquals("0", pricing.get("os_child_price"));
+        assertEquals("0", pricing.get("os_adult_price"));
+
+        // Verify pricing fields are NOT in metadata
+        assertNull("child_price should not be in metadata", metadata.get("child_price"));
+        assertNull("adult_price should not be in metadata", metadata.get("adult_price"));
 
         logger.info("✓ Seat parsing test passed");
     }

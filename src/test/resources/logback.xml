@@ -11,6 +11,6 @@
     </root>
 
     <!-- Crawler logging -->
-    <logger name="com.crawler" level="DEBUG"/>
-    <logger name="com.crawler.transdep.eticket" level="INFO"/>
+    <logger name="com" level="DEBUG"/>
+    <logger name="com.transdep.eticket" level="INFO"/>
 </configuration>

@@ -1,10 +1,12 @@
-package com.crawler.transdep.eticket;
+package com.transdep.eticket;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.transdep.eticket.TransDepEticket;
 
 import java.io.IOException;
 import java.util.List;

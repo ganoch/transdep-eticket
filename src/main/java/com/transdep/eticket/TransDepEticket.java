@@ -1,13 +1,15 @@
-package com.crawler.transdep.eticket;
+package com.transdep.eticket;
 
-import com.crawler.transdep.eticket.core.StatefulWebCrawler;
-import com.crawler.transdep.eticket.parser.HtmlParser;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.transdep.eticket.core.StatefulWebCrawler;
+import com.transdep.eticket.parser.HtmlParser;
+
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -38,7 +40,7 @@ public class TransDepEticket {
     private Document cachedHomePage;
     private Document dispatcherPage;
     private Map<String, String> seatPageMetadata;
-    private Map<String, String> seatPagePricing;
+    private Map<String, BigDecimal> seatPagePricing;
     private long cacheTimestamp;
 
     /**
@@ -560,7 +562,7 @@ public class TransDepEticket {
             // Parse metadata and pricing from embedded seat page script
             Map<String, Object> extracted = extractSeatPageData(seatPage.html());
             seatPageMetadata = (Map<String, String>) extracted.get("metadata");
-            seatPagePricing = (Map<String, String>) extracted.get("pricing");
+            seatPagePricing = (Map<String, BigDecimal>) extracted.get("pricing");
 
             if (!seats.isEmpty()) {
                 logger.info("Parsed {} seats from seat page", seats.size());
@@ -577,7 +579,7 @@ public class TransDepEticket {
 
     private Map<String, Object> extractSeatPageData(String html) {
         Map<String, String> metadata = new HashMap<>();
-        Map<String, String> pricing = new HashMap<>();
+        Map<String, BigDecimal> pricing = new HashMap<>();
 
         // Pricing-related fields
         java.util.Set<String> pricingFields = new java.util.HashSet<>();
@@ -595,7 +597,11 @@ public class TransDepEticket {
             String key = matcher.group(1);
             String value = matcher.group(2);
             if (pricingFields.contains(key)) {
-                pricing.put(key, value);
+                try {
+                    pricing.put(key, new BigDecimal(value));
+                } catch (NumberFormatException ex) {
+                    logger.warn("Unable to parse pricing value for {}: {}", key, value);
+                }
             } else {
                 metadata.put(key, value);
             }
@@ -680,7 +686,7 @@ public class TransDepEticket {
     /**
      * Get pricing exposed by the seat page script (child/adult prices, insurance costs, etc.)
      */
-    public Map<String, String> getSeatPagePricing() {
+    public Map<String, BigDecimal> getSeatPagePricing() {
         return seatPagePricing;
     }
 

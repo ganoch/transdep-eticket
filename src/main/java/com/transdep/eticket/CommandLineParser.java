@@ -1,4 +1,4 @@
-package com.crawler.transdep.eticket;
+package com.transdep.eticket;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -103,7 +103,7 @@ public class CommandLineParser {
 
     private static void printHelp() {
         System.out.println("Website Crawler - Command Line Usage\n" +
-                "\nUsage: java -cp target/classes com.crawler.transdep.eticket.CrawlerRunner [options]\n" +
+                "\nUsage: java -cp target/classes com.transdep.eticket.CrawlerRunner [options]\n" +
                 "\nOptions:\n" +
                 "  --url=<URL>                  Base URL of the website to crawl (required)\n" +
                 "  --type=<TYPE>                Crawler type: basic, login, stateful (default: basic)\n" +
@@ -117,15 +117,15 @@ public class CommandLineParser {
                 "  --help, -h                   Show this help message\n" +
                 "\nExamples:\n" +
                 "  Basic crawl:\n" +
-                "    java -cp target/classes com.crawler.transdep.eticket.CrawlerRunner \\\n" +
+                "    java -cp target/classes com.transdep.eticket.CrawlerRunner \\\n" +
                 "      --url=https://example.com --type=basic\n" +
                 "\n  Login crawl:\n" +
-                "    java -cp target/classes com.crawler.transdep.eticket.CrawlerRunner \\\n" +
+                "    java -cp target/classes com.transdep.eticket.CrawlerRunner \\\n" +
                 "      --url=https://example.com --type=login \\\n" +
                 "      --username=myuser --password=mypass \\\n" +
                 "      --verbose\n" +
                 "\n  With output file:\n" +
-                "    java -cp target/classes com.crawler.transdep.eticket.CrawlerRunner \\\n" +
+                "    java -cp target/classes com.transdep.eticket.CrawlerRunner \\\n" +
                 "      --url=https://example.com --output-format=json \\\n" +
                 "      --output-path=/tmp/results.json");
     }

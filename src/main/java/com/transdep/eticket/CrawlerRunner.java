@@ -1,4 +1,4 @@
-package com.crawler.transdep.eticket;
+package com.transdep.eticket;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,7 +62,7 @@ public class CrawlerRunner {
             }
 
             @Override
-            public void execute(com.crawler.transdep.eticket.core.WebCrawler crawler, CrawlerConfig config) throws Exception {
+            public void execute(com.transdep.eticket.core.WebCrawler crawler, CrawlerConfig config) throws Exception {
                 // This is a placeholder - customize with your logic
                 logger.info("Fetching homepage from: {}", config.getBaseUrl());
                 // Document page = crawler.getPage("/");
@@ -83,7 +83,7 @@ public class CrawlerRunner {
             }
 
             @Override
-            public void execute(com.crawler.transdep.eticket.core.WebCrawler crawler, CrawlerConfig config) throws Exception {
+            public void execute(com.transdep.eticket.core.WebCrawler crawler, CrawlerConfig config) throws Exception {
                 // This is a placeholder - customize with your logic
                 logger.info("Processing data...");
                 // Implement your data extraction logic here

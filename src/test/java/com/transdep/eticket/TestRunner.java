@@ -1,4 +1,4 @@
-package com.crawler.transdep.eticket;
+package com.transdep.eticket;
 
 import org.junit.runner.JUnitCore;
 import org.junit.runner.Result;
@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Test runner for TransDepEticket crawler tests
- * Run with: java -cp target/classes:target/test-classes com.crawler.transdep.eticket.TestRunner
+ * Run with: java -cp target/classes:target/test-classes com.transdep.eticket.TestRunner
  */
 public class TestRunner {
     private static final Logger logger = LoggerFactory.getLogger(TestRunner.class);

@@ -1,6 +1,6 @@
-package com.crawler.transdep.eticket;
+package com.transdep.eticket;
 
-import com.crawler.transdep.eticket.core.WebCrawler;
+import com.transdep.eticket.core.WebCrawler;
 
 /**
  * Interface for defining individual crawling steps/tasks

@@ -1,11 +1,13 @@
-package com.crawler.transdep.eticket;
+package com.transdep.eticket;
 
-import com.crawler.transdep.eticket.core.WebCrawler;
-import com.crawler.transdep.eticket.core.StatefulWebCrawler;
-import com.crawler.transdep.eticket.example.ExampleWebsiteCrawler;
-import com.crawler.transdep.eticket.example.ExampleLoginCrawler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.transdep.eticket.core.StatefulWebCrawler;
+import com.transdep.eticket.core.WebCrawler;
+import com.transdep.eticket.example.ExampleLoginCrawler;
+import com.transdep.eticket.example.ExampleLoginCrawler;
+import com.transdep.eticket.example.ExampleWebsiteCrawler;
 
 /**
  * Factory class for creating crawler instances based on configuration

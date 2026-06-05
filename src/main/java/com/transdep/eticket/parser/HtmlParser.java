@@ -1,4 +1,4 @@
-package com.crawler.transdep.eticket.parser;
+package com.transdep.eticket.parser;
 
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -16,7 +16,7 @@ import java.util.Map;
  */
 public class HtmlParser {
     private static final Logger logger = LoggerFactory.getLogger(HtmlParser.class);
-    
+
     private Document document;
 
     public HtmlParser(Document document) {
@@ -55,7 +55,7 @@ public class HtmlParser {
     public List<Map<String, String>> getElementList(String selector) {
         List<Map<String, String>> results = new ArrayList<>();
         Elements elements = document.select(selector);
-        
+
         elements.forEach(el -> {
             Map<String, String> item = new HashMap<>();
             item.put("text", el.text());
@@ -63,7 +63,7 @@ public class HtmlParser {
             el.attributes().forEach(attr -> item.put(attr.getKey(), attr.getValue()));
             results.add(item);
         });
-        
+
         return results;
     }
 
@@ -72,7 +72,7 @@ public class HtmlParser {
      */
     public List<Map<String, String>> parseTable(String tableSelector, String headerSelector, String rowSelector) {
         List<Map<String, String>> tableData = new ArrayList<>();
-        
+
         Element table = document.selectFirst(tableSelector);
         if (table == null) {
             logger.warn("Table not found with selector: {}", tableSelector);
@@ -89,11 +89,11 @@ public class HtmlParser {
         rows.forEach(row -> {
             Elements cells = row.select("td, th");
             Map<String, String> rowData = new HashMap<>();
-            
+
             for (int i = 0; i < cells.size() && i < headers.size(); i++) {
                 rowData.put(headers.get(i), cells.get(i).text());
             }
-            
+
             tableData.add(rowData);
         });
 
@@ -106,7 +106,7 @@ public class HtmlParser {
     public Map<String, String> parseForm(String formSelector) {
         Map<String, String> formData = new HashMap<>();
         Element form = document.selectFirst(formSelector);
-        
+
         if (form == null) {
             logger.warn("Form not found with selector: {}", formSelector);
             return formData;

@@ -1,4 +1,4 @@
-package com.crawler.transdep.eticket;
+package com.transdep.eticket;
 
 /**
  * Configuration class for crawler setup

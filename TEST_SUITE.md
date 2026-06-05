@@ -28,7 +28,7 @@ mvn test -Dtest=TransDepEticketIntegrationTest
 mvn clean compile test-compile
 
 # Run the test runner
-java -cp target/classes:target/test-classes com.crawler.transdep.eticket.TestRunner
+java -cp target/classes:target/test-classes com.transdep.eticket.TestRunner
 ```
 
 ### Option 4: Run with Maven Surefire Plugin
@@ -66,14 +66,14 @@ mvn surefire:test
 
 Running unit tests...
 ──────────────────────────────────────────────────────────────
-10:30:45.123 [main] INFO  com.crawler.transdep.eticket.TransDepEticketTest - Test: Initialization
-10:30:45.456 [main] INFO  com.crawler.transdep.eticket.TransDepEticketTest - ✓ Initialization test passed
+10:30:45.123 [main] INFO  com.transdep.eticket.TransDepEticketTest - Test: Initialization
+10:30:45.456 [main] INFO  com.transdep.eticket.TransDepEticketTest - ✓ Initialization test passed
 ...
 
 Running integration tests...
 ──────────────────────────────────────────────────────────────
-10:31:15.789 [main] INFO  com.crawler.transdep.eticket.TransDepEticketIntegrationTest - Test: Full Workflow
-10:31:16.234 [main] INFO  com.crawler.transdep.eticket.TransDepEticketIntegrationTest - Step 1: Fetching departures...
+10:31:15.789 [main] INFO  com.transdep.eticket.TransDepEticketIntegrationTest - Test: Full Workflow
+10:31:16.234 [main] INFO  com.transdep.eticket.TransDepEticketIntegrationTest - Step 1: Fetching departures...
 ...
 
 ╔══════════════════════════════════════════════════════════════╗

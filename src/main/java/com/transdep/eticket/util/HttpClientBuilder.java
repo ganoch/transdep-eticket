@@ -1,4 +1,4 @@
-package com.crawler.transdep.eticket.util;
+package com.transdep.eticket.util;
 
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;

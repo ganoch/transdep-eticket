@@ -1,6 +1,5 @@
-package com.crawler.transdep.eticket.core;
+package com.transdep.eticket.core;
 
-import com.crawler.transdep.eticket.util.HttpClientBuilder;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -11,6 +10,9 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.transdep.eticket.util.HttpClientBuilder;
+import com.transdep.eticket.util.HttpClientBuilder;
 
 import java.io.IOException;
 import java.util.HashMap;

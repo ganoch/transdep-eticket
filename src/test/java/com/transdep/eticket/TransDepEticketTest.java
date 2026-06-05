@@ -1,11 +1,15 @@
-package com.crawler.transdep.eticket;
+package com.transdep.eticket;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.transdep.eticket.TransDepEticket;
+import com.transdep.eticket.core.StatefulWebCrawler;
+
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -13,7 +17,6 @@ import java.lang.reflect.Field;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import com.crawler.transdep.eticket.core.StatefulWebCrawler;
 
 import static org.junit.Assert.*;
 
@@ -340,14 +343,14 @@ public class TransDepEticketTest {
         assertEquals("Нэйшнл эженси", metadata.get("ic_name"));
 
         // Verify pricing map contains pricing info (NOT in metadata)
-        Map<String, String> pricing = eticket.getSeatPagePricing();
+        Map<String, BigDecimal> pricing = eticket.getSeatPagePricing();
         assertNotNull("Seat page pricing should not be null", pricing);
-        assertEquals("22500", pricing.get("child_price"));
-        assertEquals("45000", pricing.get("adult_price"));
-        assertEquals("1600", pricing.get("adult_insurance_price"));
-        assertEquals("800", pricing.get("child_insurance_price"));
-        assertEquals("0", pricing.get("os_child_price"));
-        assertEquals("0", pricing.get("os_adult_price"));
+        assertEquals(new BigDecimal("22500"), pricing.get("child_price"));
+        assertEquals(new BigDecimal("45000"), pricing.get("adult_price"));
+        assertEquals(new BigDecimal("1600"), pricing.get("adult_insurance_price"));
+        assertEquals(new BigDecimal("800"), pricing.get("child_insurance_price"));
+        assertEquals(new BigDecimal("0"), pricing.get("os_child_price"));
+        assertEquals(new BigDecimal("0"), pricing.get("os_adult_price"));
 
         // Verify pricing fields are NOT in metadata
         assertNull("child_price should not be in metadata", metadata.get("child_price"));

@@ -1,10 +1,14 @@
-package com.crawler.transdep.eticket.example;
+package com.transdep.eticket.example;
 
-import com.crawler.transdep.eticket.core.StatefulWebCrawler;
-import com.crawler.transdep.eticket.parser.HtmlParser;
+import com.transdep.eticket.parser.HtmlParser;
+import com.transdep.eticket.core.StatefulWebCrawler;
+
 import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.transdep.eticket.core.StatefulWebCrawler;
+import com.transdep.eticket.parser.HtmlParser;
 
 import java.io.IOException;
 import java.util.Map;

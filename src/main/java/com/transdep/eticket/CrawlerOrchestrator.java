@@ -1,8 +1,10 @@
-package com.crawler.transdep.eticket;
+package com.transdep.eticket;
 
-import com.crawler.transdep.eticket.core.WebCrawler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.transdep.eticket.core.WebCrawler;
+import com.transdep.eticket.core.WebCrawler;
 
 import java.io.IOException;
 import java.util.ArrayList;

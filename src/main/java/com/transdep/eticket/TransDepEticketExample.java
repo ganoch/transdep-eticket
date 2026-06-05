@@ -1,4 +1,4 @@
-package com.crawler.transdep.eticket;
+package com.transdep.eticket;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -33,14 +33,14 @@ src/main/java/com/crawler/transdep/eticket/
 
 ### Basic Crawl
 ```bash
-java -cp target/classes com.crawler.transdep.eticket.CrawlerRunner \
+java -cp target/classes com.transdep.eticket.CrawlerRunner \
   --url=https://example-legacy-website.com \
   --type=basic
 ```
 
 ### Login Crawl
 ```bash
-java -cp target/classes com.crawler.transdep.eticket.CrawlerRunner \
+java -cp target/classes com.transdep.eticket.CrawlerRunner \
   --url=https://example-legacy-website.com \
   --type=login \
   --username=myuser \
@@ -50,7 +50,7 @@ java -cp target/classes com.crawler.transdep.eticket.CrawlerRunner \
 
 ### With Output to File
 ```bash
-java -cp target/classes com.crawler.transdep.eticket.CrawlerRunner \
+java -cp target/classes com.transdep.eticket.CrawlerRunner \
   --url=https://example-legacy-website.com \
   --output-format=json \
   --output-path=/tmp/results.json
@@ -313,7 +313,7 @@ crawler.close();
 Configure logging in your `log4j2.xml` or `logback.xml`:
 
 ```xml
-<logger name="com.crawler" level="DEBUG"/>
+<logger name="com" level="DEBUG"/>
 ```
 
 ## Building

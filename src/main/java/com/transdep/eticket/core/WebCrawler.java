@@ -15,6 +15,7 @@ import com.transdep.eticket.util.HttpClientBuilder;
 import com.transdep.eticket.util.HttpClientBuilder;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -40,22 +41,36 @@ public abstract class WebCrawler {
         this.defaultHeaders = new HashMap<>();
         this.defaultHeaders.put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
         this.defaultHeaders.put("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+        this.defaultHeaders.put("Accept-Charset", "utf-8");
+    }
+
+
+    public Document getPage(String path) throws IOException {
+        return getPage(path, false);
     }
 
     /**
      * Perform GET request and return HTML document
      */
-    protected Document getPage(String path) throws IOException {
+    protected Document getPage(String path, boolean isAjax) throws IOException {
         String url = baseUrl + path;
         HttpGet get = new HttpGet(url);
 
         defaultHeaders.forEach(get::setHeader);
 
+        if (isAjax) {
+            get.setHeader("X-Requested-With", "XMLHttpRequest");
+            get.setHeader("Sec-Fetch-Dest", "empty");
+            get.setHeader("Sec-Fetch-Mode", "cors");
+            get.setHeader("Sec-Fetch-Site", "same-origin");
+        }
+
+
         try (CloseableHttpResponse response = httpClient.execute(get)) {
             if (response.getStatusLine().getStatusCode() != 200) {
                 throw new IOException("HTTP " + response.getStatusLine().getStatusCode() + " for " + url);
             }
-            String html = EntityUtils.toString(response.getEntity());
+            String html = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
             return Jsoup.parse(html, url);
         }
     }
@@ -68,14 +83,14 @@ public abstract class WebCrawler {
         HttpPost post = new HttpPost(url);
 
         defaultHeaders.forEach(post::setHeader);
-        post.setHeader("Content-Type", "application/x-www-form-urlencoded");
-        post.setEntity(new StringEntity(formData));
+        post.setHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+        post.setEntity(new StringEntity(formData, StandardCharsets.UTF_8));
 
         try (CloseableHttpResponse response = httpClient.execute(post)) {
             if (response.getStatusLine().getStatusCode() != 200) {
                 throw new IOException("HTTP " + response.getStatusLine().getStatusCode() + " for " + url);
             }
-            String html = EntityUtils.toString(response.getEntity());
+            String html = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
             return Jsoup.parse(html, url);
         }
     }
@@ -88,14 +103,14 @@ public abstract class WebCrawler {
         HttpPost post = new HttpPost(url);
 
         defaultHeaders.forEach(post::setHeader);
-        post.setHeader("Content-Type", "application/json");
-        post.setEntity(new StringEntity(jsonBody));
+        post.setHeader("Content-Type", "application/json; charset=UTF-8");
+        post.setEntity(new StringEntity(jsonBody, StandardCharsets.UTF_8));
 
         try (CloseableHttpResponse response = httpClient.execute(post)) {
             if (response.getStatusLine().getStatusCode() != 200) {
                 throw new IOException("HTTP " + response.getStatusLine().getStatusCode() + " for " + url);
             }
-            String html = EntityUtils.toString(response.getEntity());
+            String html = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
             return Jsoup.parse(html, url);
         }
     }

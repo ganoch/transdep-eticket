@@ -181,7 +181,7 @@ public class TransDepEticket {
                 urlEncode(departure), urlEncode(stop), urlEncode(destination));
 
         logger.info("Loading dispatcher select page: {}", query);
-        dispatcherPage = crawler.getPageStateful(query);
+        dispatcherPage = crawler.getPageStateful(query, true);
     }
 
     /**
@@ -520,7 +520,7 @@ public class TransDepEticket {
                     urlEncode(departure), urlEncode(stop), urlEncode(destination), urlEncode(dispatcherId));
 
             logger.info("Loading seat page: {}", seatQuery);
-            Document seatPage = crawler.getPageStateful(seatQuery);
+            Document seatPage = crawler.getPageStateful(seatQuery, true);
             HtmlParser parser = new HtmlParser(seatPage);
             List<Map<String, String>> seats = new ArrayList<>();
 
@@ -622,6 +622,8 @@ public class TransDepEticket {
             if (labelElement == null) {
                 continue;
             }
+
+            logger.debug("Extracting seat page metadata - found label: '{}', value: '{}'", labelElement.text(), value);
 
             String labelText = labelElement.text().trim().replace("\u00A0", " ");
             if (labelText.endsWith(":")) {

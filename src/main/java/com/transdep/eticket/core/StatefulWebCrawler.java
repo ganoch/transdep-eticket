@@ -18,6 +18,11 @@ import com.transdep.eticket.util.HttpClientBuilder;
 import com.transdep.eticket.util.HttpClientBuilder;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
 
 /**
@@ -43,19 +48,32 @@ public abstract class StatefulWebCrawler extends WebCrawler {
         }
     }
 
+
+    public Document getPageStateful(String path) throws IOException {
+        return getPageStateful(path, false);
+    }
+
     /**
      * Perform stateful GET request
      */
-    public Document getPageStateful(String path) throws IOException {
+    public Document getPageStateful(String path, boolean isAjax) throws IOException {
         String url = baseUrl + path;
         HttpGet get = new HttpGet(url);
+
         defaultHeaders.forEach(get::setHeader);
+        if (isAjax) {
+            get.setHeader("X-Requested-With", "XMLHttpRequest");
+            get.setHeader("Sec-Fetch-Dest", "empty");
+            get.setHeader("Sec-Fetch-Mode", "cors");
+            get.setHeader("Sec-Fetch-Site", "same-origin");
+        }
 
         try (CloseableHttpResponse response = httpClient.execute(get, context)) {
             if (response.getStatusLine().getStatusCode() != 200) {
                 throw new IOException("HTTP " + response.getStatusLine().getStatusCode() + " for " + url);
             }
-            String html = EntityUtils.toString(response.getEntity());
+            String html = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+            logger.debug("Response for {}: \n{}", url, html);
             return Jsoup.parse(html, url);
         }
     }
@@ -67,14 +85,14 @@ public abstract class StatefulWebCrawler extends WebCrawler {
         String url = baseUrl + path;
         HttpPost post = new HttpPost(url);
         defaultHeaders.forEach(post::setHeader);
-        post.setHeader("Content-Type", "application/x-www-form-urlencoded");
-        post.setEntity(new StringEntity(formData));
+        post.setHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+        post.setEntity(new StringEntity(formData, StandardCharsets.UTF_8));
 
         try (CloseableHttpResponse response = httpClient.execute(post, context)) {
             if (response.getStatusLine().getStatusCode() != 200) {
                 throw new IOException("HTTP " + response.getStatusLine().getStatusCode() + " for " + url);
             }
-            String html = EntityUtils.toString(response.getEntity());
+            String html = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
             return Jsoup.parse(html, url);
         }
     }

@@ -505,9 +505,9 @@ public class TransDepEticket {
     /**
      * Fetch available seats for the currently selected dispatcher/trip
      * Requires: setDeparture(), setDestination(), and setDispatcherId() (trip) to be called first
-     * @return List of seat descriptors (id, label, status)
+     * @return Map containing "seats", "metadata", and "pricing" from the seat page
      */
-    public List<Map<String, String>> fetchSeats() throws IOException {
+    public Map<String, Object> fetchSeatsData() throws IOException {
         if (departure == null || destination == null || dispatcherId == null) {
             throw new IllegalStateException("Must call setDeparture(), setDestination(), and setDispatcherId() first");
         }
@@ -564,12 +564,17 @@ public class TransDepEticket {
             seatPageMetadata = (Map<String, String>) extracted.get("metadata");
             seatPagePricing = (Map<String, BigDecimal>) extracted.get("pricing");
 
+            Map<String, Object> result = new HashMap<>();
+            result.put("seats", seats);
+            result.put("metadata", seatPageMetadata);
+            result.put("pricing", seatPagePricing);
+
             if (!seats.isEmpty()) {
                 logger.info("Parsed {} seats from seat page", seats.size());
-                return seats;
+                return result;
             } else {
-                logger.warn("No seat checkboxes found on seat page, returning empty list");
-                return new ArrayList<>();
+                logger.warn("No seat checkboxes found on seat page, returning empty result");
+                return result;
             }
         } catch (Exception e) {
             logger.error("Error fetching seats", e);

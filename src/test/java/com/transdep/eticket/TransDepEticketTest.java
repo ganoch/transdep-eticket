@@ -319,8 +319,10 @@ public class TransDepEticketTest {
         eticket.setDestination("215");
         eticket.setDispatcherId("1780135");
 
-        List<Map<String, String>> seats = eticket.fetchSeats();
-        assertNotNull("Seats should not be null", seats);
+        Map<String, Object> result = eticket.fetchSeatsData();
+        assertNotNull("Seats should not be null", result);
+        @SuppressWarnings("unchecked")
+        List<Map<String, String>> seats = (List<Map<String, String>>) result.get("seats");
         assertEquals("Should parse three seats", 3, seats.size());
 
         Map<String, String> map = new HashMap<>();

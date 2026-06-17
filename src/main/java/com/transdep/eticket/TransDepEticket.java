@@ -612,30 +612,59 @@ public class TransDepEticket {
             }
         }
 
-        // Parse HTML blocks like label/value pairs
+        // Parse HTML blocks like label/value pairs from metadata containers. The label div may be present but empty,
+        // so use the strong value nodes and fall back by order when the label text is missing.
         org.jsoup.nodes.Document doc = Jsoup.parse(html);
         org.jsoup.select.Elements strongElements = doc.select("div > strong");
+
+        java.util.List<String> fallbackValues = new ArrayList<>();
+        java.util.List<String> metadataFallbackOrder = java.util.Arrays.asList(
+            "route",
+            "departure_datetime",
+            "company_name",
+            "bus_model",
+            "plate_number"
+        );
+
         for (org.jsoup.nodes.Element strong : strongElements) {
             String value = strong.text().trim();
             org.jsoup.nodes.Element container = strong.parent();
             org.jsoup.nodes.Element labelElement = container != null ? container.previousElementSibling() : null;
-            if (labelElement == null) {
-                continue;
-            }
 
-            logger.debug("Extracting seat page metadata - found label: '{}', value: '{}'", labelElement.text(), value);
-
+            String key = null;
             String labelText = labelElement.text().trim().replace("\u00A0", " ");
-            if (labelText.endsWith(":")) {
-                labelText = labelText.substring(0, labelText.length() - 1).trim();
-            }
-            if (labelText.isEmpty()) {
-                continue;
+            if (labelText != null && !labelText.isEmpty()) {
+                logger.debug("Extracting seat page metadata - found label: '{}', value: '{}'", labelElement.text(), value);
+
+                if (labelText.endsWith(":")) {
+                    labelText = labelText.substring(0, labelText.length() - 1).trim();
+                }
+                if (!labelText.isEmpty()) {
+                    key = normalizeSeatPageLabel(labelText);
+                }
             }
 
-            String key = normalizeSeatPageLabel(labelText);
-            if (!metadata.containsKey(key)) {
-                metadata.put(key, value);
+            if (key != null && !key.isEmpty()) {
+                if (!metadata.containsKey(key)) {
+                    metadata.put(key, value);
+                }
+            } else if (!value.isEmpty()) {
+                fallbackValues.add(value);
+            }
+        }
+
+        if (!fallbackValues.isEmpty()) {
+            java.util.List<String> remainingKeys = new ArrayList<>();
+            for (String expectedKey : metadataFallbackOrder) {
+                if (!metadata.containsKey(expectedKey)) {
+                    remainingKeys.add(expectedKey);
+                }
+            }
+            for (int i = 0; i < fallbackValues.size() && i < remainingKeys.size(); i++) {
+                String fallbackKey = remainingKeys.get(i);
+                String fallbackValue = fallbackValues.get(i);
+                metadata.put(fallbackKey, fallbackValue);
+                logger.debug("Assigned fallback metadata {} = {}", fallbackKey, fallbackValue);
             }
         }
 

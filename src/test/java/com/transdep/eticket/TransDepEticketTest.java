@@ -361,6 +361,67 @@ public class TransDepEticketTest {
         logger.info("✓ Seat parsing test passed");
     }
 
+    @Test
+    public void testFetchSeatsParsingWithMissingLabels() throws Exception {
+        logger.info("Test: Fetch Seats Parsing With Missing Labels");
+
+        final String html = "<script language=\"javascript\">"
+            +"document.getElementById(\"child_price\").value=\"22500\";"
+            +"document.getElementById(\"adult_price\").value=\"45000\";"
+            +"document.getElementById(\"ic_name\").innerHTML=\"Нэйшнл эженси\";"
+            +"document.getElementById(\"adult_insurance_price\").value=\"1600\";"
+            +"document.getElementById(\"child_insurance_price\").value=\"800\";"
+            +"document.getElementById(\"os_child_price\").innerHTML=\"0\";"
+            +"document.getElementById(\"os_adult_price\").innerHTML=\"0\";"
+            +"</script>"
+            +"<div class=\"uk-grid uk-grid-collapse\">"
+            +"<div class=\"uk-width-1-1@m uk-width-2-5@l\"></div>"
+            +"<div class=\"uk-width-1-1@m uk-width-3-5@l\"><strong>Ар.Эрдэнэбулган - УБ - Ар.Эрдэнэбулган</strong></div>"
+            +"<div class=\"uk-width-1-1@m uk-width-2-5@l\"></div>"
+            +"<div class=\"uk-width-1-1@m uk-width-3-5@l\"><strong>2026-06-06 08:00</strong></div>"
+            +"<div class=\"uk-width-1-1@m uk-width-2-5@l\"></div>"
+            +"<div class=\"uk-width-1-1@m uk-width-3-5@l\"><strong>Шуудан Тээх ХХК</strong></div>"
+            +"<div class=\"uk-width-1-1@m uk-width-2-5@l\"></div>"
+            +"<div class=\"uk-width-1-1@m uk-width-3-5@l\"><strong>Universe-45</strong></div>"
+            +"<div class=\"uk-width-1-1@m uk-width-2-5@l\"></div>"
+            +"<div class=\"uk-width-1-1@m uk-width-3-5@l\"><strong>75-90 УЕН</strong></div>"
+            +"</div>";
+
+        StatefulWebCrawler stubCrawler = new StatefulWebCrawler("https://eticket.transdep.mn") {
+            @Override
+            public Document getPageStateful(String path) throws IOException {
+                return Jsoup.parse(html, "https://eticket.transdep.mn");
+            }
+
+            @Override
+            public void crawl() throws IOException {
+                // no-op for test
+            }
+        };
+
+        Field crawlerField = TransDepEticket.class.getDeclaredField("crawler");
+        crawlerField.setAccessible(true);
+        crawlerField.set(eticket, stubCrawler);
+
+        eticket.setDeparture("1");
+        eticket.setStop("12");
+        eticket.setDestination("215");
+        eticket.setDispatcherId("1780135");
+
+        Map<String, Object> result = eticket.fetchSeatsData();
+        assertNotNull("Seats should not be null", result);
+
+        Map<String, String> metadata = eticket.getSeatPageMetadata();
+        assertNotNull("Seat page metadata should not be null", metadata);
+        assertEquals("Ар.Эрдэнэбулган - УБ - Ар.Эрдэнэбулган", metadata.get("route"));
+        assertEquals("2026-06-06 08:00", metadata.get("departure_datetime"));
+        assertEquals("Шуудан Тээх ХХК", metadata.get("company_name"));
+        assertEquals("Universe-45", metadata.get("bus_model"));
+        assertEquals("75-90 УЕН", metadata.get("plate_number"));
+
+        logger.info("✓ Seat parsing fallback test passed");
+    }
+
     public void tearDown() throws IOException {
         logger.info("Cleaning up...");
         if (eticket != null) {

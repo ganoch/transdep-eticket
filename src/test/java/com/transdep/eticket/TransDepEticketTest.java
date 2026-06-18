@@ -298,7 +298,7 @@ public class TransDepEticketTest {
         // Stub crawler that returns our HTML for any seat page request
         StatefulWebCrawler stubCrawler = new StatefulWebCrawler("https://eticket.transdep.mn") {
             @Override
-            public Document getPageStateful(String path) throws IOException {
+            public Document getPageStateful(String path, boolean isAjax) throws IOException {
                 return Jsoup.parse(html, "https://eticket.transdep.mn");
             }
 
@@ -389,7 +389,7 @@ public class TransDepEticketTest {
 
         StatefulWebCrawler stubCrawler = new StatefulWebCrawler("https://eticket.transdep.mn") {
             @Override
-            public Document getPageStateful(String path) throws IOException {
+            public Document getPageStateful(String path, boolean isAjax) throws IOException {
                 return Jsoup.parse(html, "https://eticket.transdep.mn");
             }
 

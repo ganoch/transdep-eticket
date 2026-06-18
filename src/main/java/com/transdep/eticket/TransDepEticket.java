@@ -522,7 +522,7 @@ public class TransDepEticket {
         logger.info("Setting destination to: {}", destinationValue);
 
         validateSession("setDestination");
-        if (departure == null || stop == null) {
+        if (departure == null) {
             throw new IllegalStateException("Must call setDeparture() and setStop() before setDestination()");
         }
 

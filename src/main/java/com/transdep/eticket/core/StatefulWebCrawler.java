@@ -105,6 +105,26 @@ public abstract class StatefulWebCrawler extends WebCrawler {
     }
 
     /**
+     * Get the internal cookie jar
+     */
+    public CookieStore getCookieJar() {
+        return cookieStore;
+    }
+
+    /**
+     * Replace the current cookie jar and keep the HttpClientContext in sync.
+     */
+    public void setCookieJar(CookieStore cookieJar) {
+        if (cookieJar == null) {
+            cookieJar = new BasicCookieStore();
+        }
+        this.cookieStore = cookieJar;
+        if (this.context != null) {
+            this.context.setCookieStore(cookieJar);
+        }
+    }
+
+    /**
      * Get cookie value by name
      */
     public String getCookieValue(String name) {

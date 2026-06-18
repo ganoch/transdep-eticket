@@ -422,6 +422,28 @@ public class TransDepEticketTest {
         logger.info("✓ Seat parsing fallback test passed");
     }
 
+    @Test
+    public void testSessionExpiresAfterFiveMinutes() throws Exception {
+        logger.info("Test: Session expires after five minutes");
+
+        List<Map<String, String>> departures = eticket.fetchDepartures();
+        assertFalse("Should have departures", departures.isEmpty());
+        eticket.setDeparture(departures.get(0).get("value"));
+
+        TransDepSession session = eticket.getSession();
+        assertNotNull("Session should exist after fetching departures", session);
+        session.startSession(System.currentTimeMillis() - (5 * 60 * 1000 + 1));
+
+        try {
+            eticket.fetchStops();
+            fail("Expected IllegalStateException when session has expired");
+        } catch (IllegalStateException e) {
+            assertTrue("Exception should mention session expiration", e.getMessage().contains("Session expired"));
+        }
+
+        logger.info("✓ Session expiration validation test passed");
+    }
+
     public void tearDown() throws IOException {
         logger.info("Cleaning up...");
         if (eticket != null) {

@@ -43,6 +43,9 @@ public class TransDepEticket {
     private Map<String, BigDecimal> seatPagePricing;
     private long cacheTimestamp;
 
+    private static final long SESSION_DURATION_MS = 5 * 60 * 1000;
+    private TransDepSession session;
+
     /**
      * Initialize TransDepEticket crawler
      */
@@ -90,6 +93,7 @@ public class TransDepEticket {
         if (departure == null) {
             throw new IllegalStateException("Must call setDeparture() first");
         }
+        validateSession("fetchDestinations");
         // Some departures don't have an intermediate "stop"; when that's the case
         // the page's `selectFromLocation` logic populates `to_location` based on
         // the selected `from_location` (departure).
@@ -139,6 +143,12 @@ public class TransDepEticket {
     private Document getOrFetchHomePage() throws IOException {
         long now = System.currentTimeMillis();
 
+        // If the existing session expired, reset everything and start fresh.
+        if (isSessionExpired(now)) {
+            logger.info("Session expired after 5 minutes, starting a fresh session from home");
+            clearSession();
+        }
+
         // Cache for 5 seconds
         if (cachedHomePage != null && (now - cacheTimestamp) < 5000) {
             logger.debug("Using cached home page");
@@ -148,6 +158,7 @@ public class TransDepEticket {
         logger.debug("Fetching fresh home page");
         cachedHomePage = crawler.getPageStateful("/");
         cacheTimestamp = now;
+        startSession(now);
         return cachedHomePage;
     }
 
@@ -164,6 +175,49 @@ public class TransDepEticket {
         logger.debug("Page cache cleared");
     }
 
+    private void startSession(long now) {
+        session = new TransDepSession(crawler.getCookieJar(), SESSION_DURATION_MS);
+        session.startSession(now);
+        session.setDeparture(departure);
+        session.setStop(stop);
+        session.setDestination(destination);
+        session.setDispatcherId(dispatcherId);
+        logger.debug("Session started at {} with sessionId={}", now, session.getSessionId());
+    }
+
+    private void clearSession() {
+        if (session != null) {
+            session.clear();
+        }
+        session = null;
+        cachedHomePage = null;
+        dispatcherPage = null;
+        seatPageMetadata = null;
+        seatPagePricing = null;
+        departure = null;
+        stop = null;
+        destination = null;
+        dispatcherId = null;
+        cacheTimestamp = 0;
+        logger.debug("Session cleared");
+    }
+
+    private boolean isSessionExpired(long now) {
+        return session != null && session.isExpired(now);
+    }
+
+    private void validateSession(String action) {
+        long now = System.currentTimeMillis();
+        if (session == null || !session.isActive()) {
+            throw new IllegalStateException("No active session. Start from the home page before calling " + action + ".");
+        }
+        if (session.isExpired(now)) {
+            clearSession();
+            throw new IllegalStateException("Session expired after 5 minutes. Refresh from the home page and re-select values.");
+        }
+        session.touch(now);
+    }
+
     private boolean hasRouteSelection() {
         return departure != null && destination != null;
     }
@@ -173,6 +227,7 @@ public class TransDepEticket {
     }
 
     private void loadDispatcherPage() throws IOException {
+        validateSession("loadDispatcherPage");
         if (!hasRouteSelection()) {
             throw new IllegalStateException("Departure, stop, and destination must all be set before loading dispatcher data");
         }
@@ -191,10 +246,19 @@ public class TransDepEticket {
     public void setDeparture(String departureValue) throws IOException {
         logger.info("Setting departure to: {}", departureValue);
 
+        getOrFetchHomePage();
+
         this.departure = departureValue;
         this.stop = null;
         this.destination = null;
+        this.dispatcherId = null;
         clearDispatcherPage();
+        if (session != null) {
+            session.setDeparture(departureValue);
+            session.setStop(null);
+            session.setDestination(null);
+            session.setDispatcherId(null);
+        }
 
         logger.info("Departure set to: {}", departureValue);
     }
@@ -207,6 +271,7 @@ public class TransDepEticket {
         if (departure == null) {
             throw new IllegalStateException("Must call setDeparture() first");
         }
+        validateSession("fetchStops");
 
         logger.info("Fetching stops for departure {}", departure);
         return parseStopOptions(departure);
@@ -219,9 +284,20 @@ public class TransDepEticket {
     public void setStop(String stopValue) throws IOException {
         logger.info("Setting stop to: {}", stopValue);
 
+        validateSession("setStop");
+        if (departure == null) {
+            throw new IllegalStateException("Must call setDeparture() before setStop()");
+        }
+
         this.stop = stopValue;
         this.destination = null;
+        this.dispatcherId = null;
         clearDispatcherPage();
+        if (session != null) {
+            session.setStop(stopValue);
+            session.setDestination(null);
+            session.setDispatcherId(null);
+        }
 
         logger.info("Stop set to: {}", stopValue);
     }
@@ -445,11 +521,16 @@ public class TransDepEticket {
     public void setDestination(String destinationValue) throws IOException {
         logger.info("Setting destination to: {}", destinationValue);
 
-        if (departure == null) {
+        validateSession("setDestination");
+        if (departure == null || stop == null) {
             throw new IllegalStateException("Must call setDeparture() and setStop() before setDestination()");
         }
 
         this.destination = destinationValue;
+        if (session != null) {
+            session.setDestination(destinationValue);
+            session.setDispatcherId(null);
+        }
         clearDispatcherPage();
 
         if (hasRouteSelection()) {
@@ -467,6 +548,7 @@ public class TransDepEticket {
         if (departure == null || destination == null) {
             throw new IllegalStateException("Must call setDeparture(), and setDestination() first");
         }
+        validateSession("fetchTrips");
 
         logger.info("Fetching dates for {} -> {}", departure, destination);
 
@@ -511,6 +593,7 @@ public class TransDepEticket {
         if (departure == null || destination == null || dispatcherId == null) {
             throw new IllegalStateException("Must call setDeparture(), setDestination(), and setDispatcherId() first");
         }
+        validateSession("fetchSeatsData");
 
         logger.info("Fetching seats for dispatcher {} ({} -> {})", dispatcherId, departure, destination);
 
@@ -712,6 +795,27 @@ public class TransDepEticket {
         return dispatcherId;
     }
 
+    public TransDepSession getSession() {
+        return session;
+    }
+
+    public void setSession(TransDepSession session) {
+        this.session = session;
+        if (session != null) {
+            if (session.getCookieJar() != null && crawler != null) {
+                crawler.setCookieJar(session.getCookieJar());
+            }
+            this.departure = session.getDeparture();
+            this.stop = session.getStop();
+            this.destination = session.getDestination();
+            this.dispatcherId = session.getDispatcherId();
+        }
+    }
+
+    public org.apache.http.client.CookieStore getCookieJar() {
+        return crawler != null ? crawler.getCookieJar() : null;
+    }
+
     /**
      * Get metadata exposed by the seat page (route, departure time, company, bus model, plate number, etc.)
      */
@@ -729,8 +833,12 @@ public class TransDepEticket {
     /**
      * Set dispatcher ID (usually extracted from date selection)
      */
-    public void setDispatcherId(String dispatcherId) {
+    public void setDispatcherId(String dispatcherId) throws IOException {
+        validateSession("setDispatcherId");
         this.dispatcherId = dispatcherId;
+        if (session != null) {
+            session.setDispatcherId(dispatcherId);
+        }
         logger.info("Dispatcher ID set to: {}", dispatcherId);
     }
 

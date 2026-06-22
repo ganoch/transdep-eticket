@@ -248,6 +248,13 @@ public class TransDepEticket {
 
         getOrFetchHomePage();
 
+        /**
+         * validate departure value
+         */
+        if(!validateDeparture(departureValue)) {
+            throw new IllegalArgumentException("Invalid departure value: " + departureValue);
+        }
+
         this.departure = departureValue;
         this.stop = null;
         this.destination = null;
@@ -287,6 +294,10 @@ public class TransDepEticket {
         validateSession("setStop");
         if (departure == null) {
             throw new IllegalStateException("Must call setDeparture() before setStop()");
+        }
+
+        if (!validateStop(stopValue)) {
+            throw new IllegalArgumentException("Invalid stop value: " + stopValue);
         }
 
         this.stop = stopValue;
@@ -523,7 +534,11 @@ public class TransDepEticket {
 
         validateSession("setDestination");
         if (departure == null) {
-            throw new IllegalStateException("Must call setDeparture() and setStop() before setDestination()");
+            throw new IllegalStateException("Must call setDeparture() before setDestination()");
+        }
+
+        if (!validateDestination(destinationValue)) {
+            throw new IllegalArgumentException("Invalid destination value: " + destinationValue);
         }
 
         this.destination = destinationValue;
@@ -549,6 +564,16 @@ public class TransDepEticket {
             throw new IllegalStateException("Must call setDeparture(), and setDestination() first");
         }
         validateSession("fetchTrips");
+
+        if(!validateDeparture(departure)) {
+            throw new IllegalArgumentException("Invalid departure value: " + departure);
+        }
+        if(!validateStop(stop)) {
+            throw new IllegalArgumentException("Invalid stop value: " + stop);
+        }
+        if(!validateDestination(destination)) {
+            throw new IllegalArgumentException("Invalid destination value: " + destination);
+        }
 
         logger.info("Fetching dates for {} -> {}", departure, destination);
 
@@ -594,6 +619,19 @@ public class TransDepEticket {
             throw new IllegalStateException("Must call setDeparture(), setDestination(), and setDispatcherId() first");
         }
         validateSession("fetchSeatsData");
+
+        if(!validateDeparture(departure)) {
+            throw new IllegalArgumentException("Invalid departure value: " + departure);
+        }
+        if(!validateStop(stop)) {
+            throw new IllegalArgumentException("Invalid stop value: " + stop);
+        }
+        if(!validateDestination(destination)) {
+            throw new IllegalArgumentException("Invalid destination value: " + destination);
+        }
+        if(!validateDispatcherId(dispatcherId)) {
+            throw new IllegalArgumentException("Invalid dispatcherId value: " + dispatcherId);
+        }
 
         logger.info("Fetching seats for dispatcher {} ({} -> {})", dispatcherId, departure, destination);
 
@@ -835,6 +873,11 @@ public class TransDepEticket {
      */
     public void setDispatcherId(String dispatcherId) throws IOException {
         validateSession("setDispatcherId");
+
+        if(!validateDispatcherId(dispatcherId)) {
+            throw new IllegalArgumentException("Invalid dispatcherId value: " + dispatcherId);
+        }
+
         this.dispatcherId = dispatcherId;
         if (session != null) {
             session.setDispatcherId(dispatcherId);
@@ -895,5 +938,28 @@ public class TransDepEticket {
         } catch (Exception e) {
             return value;
         }
+    }
+
+    private boolean validateDeparture(String departureValue) throws IOException {
+        List<Map<String, String>> departures = fetchDepartures();
+        return departures.stream().anyMatch(d -> d.get("value").equals(departureValue));
+    }
+
+    private boolean validateStop(String stopValue) throws IOException {
+        if (stopValue == null || stopValue.isEmpty()) {
+            return true; // No stop selected is valid
+        }
+        List<Map<String, String>> stops = fetchStops();
+        return stops.stream().anyMatch(s -> s.get("value").equals(stopValue));
+    }
+
+    private boolean validateDestination(String destinationValue) throws IOException {
+        List<Map<String, String>> destinations = fetchDestinations();
+        return destinations.stream().anyMatch(d -> d.get("value").equals(destinationValue));
+    }
+
+    private boolean validateDispatcherId(String dispatcherIdValue) throws IOException {
+        List<Map<String, String>> trips = fetchTrips();
+        return trips.stream().anyMatch(t -> t.get("value").equals(dispatcherIdValue));
     }
 }

@@ -73,7 +73,7 @@ public abstract class StatefulWebCrawler extends WebCrawler {
                 throw new IOException("HTTP " + response.getStatusLine().getStatusCode() + " for " + url);
             }
             String html = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
-            logger.debug("Response for {}: \n{}", url, html);
+            // logger.debug("Response for {}: \n{}", url, html);
             return Jsoup.parse(html, url);
         }
     }
